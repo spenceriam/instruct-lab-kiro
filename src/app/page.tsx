@@ -1,26 +1,32 @@
 'use client'
 
 import Layout from '@/components/Layout'
+import {
+  HelpModal,
+  PrivacyModal,
+  TermsModal,
+  modalManager,
+  HELP_MODAL_ID,
+  PRIVACY_MODAL_ID,
+  TERMS_MODAL_ID
+} from '@/components/modals'
 
 export default function Home() {
   const handleOpenHelp = () => {
-    console.log('Open help modal')
-    // TODO: Implement help modal
+    modalManager.open(HELP_MODAL_ID)
   }
 
   const handleResetSession = () => {
+    // TODO: Implement session reset functionality
     console.log('Reset session')
-    // TODO: Implement session reset
   }
 
   const handleOpenPrivacy = () => {
-    console.log('Open privacy modal')
-    // TODO: Implement privacy modal
+    modalManager.open(PRIVACY_MODAL_ID)
   }
 
   const handleOpenTerms = () => {
-    console.log('Open terms modal')
-    // TODO: Implement terms modal
+    modalManager.open(TERMS_MODAL_ID)
   }
 
   return (
@@ -69,6 +75,11 @@ export default function Home() {
           </div>
         </div>
       </div>
+      
+      {/* Modal Components */}
+      <HelpModal />
+      <PrivacyModal />
+      <TermsModal />
     </Layout>
   )
 }

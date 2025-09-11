@@ -166,10 +166,30 @@
 @keyframes slide-up {
   from {
     opacity: 0;
-    transform: translateY(1rem);
+    transform: translateY(1rem) scale(0.95);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes modal-overlay {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Modal specific styles */
+@layer components {
+  .modal-overlay {
+    animation: modal-overlay var(--animation-duration-fast) ease-out;
+  }
+  
+  .modal-content {
+    animation: slide-up var(--animation-duration-normal) ease-out;
   }
 }
