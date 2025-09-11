@@ -139,6 +139,14 @@
     animation: slide-up var(--animation-duration-normal) ease-out;
   }
   
+  /* Gradient text utilities */
+  .gradient-text {
+    background: linear-gradient(135deg, hsl(var(--primary)) 0%, #3b82f6 50%, #8b5cf6 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  
   /* Shadow utilities */
   .shadow-custom-sm {
     box-shadow: var(--shadow-sm);
