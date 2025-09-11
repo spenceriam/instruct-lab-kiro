@@ -34,6 +34,32 @@
     --success: 142 76% 36%;
     --warning: 38 92% 50%;
     --error: 0 84% 60%;
+    
+    /* Layout and spacing */
+    --header-height: 4rem;
+    --footer-height: 5rem;
+    --container-max-width: 1200px;
+    --container-padding: 1rem;
+    
+    /* Animations */
+    --animation-duration-fast: 0.15s;
+    --animation-duration-normal: 0.2s;
+    --animation-duration-slow: 0.3s;
+    
+    /* Typography */
+    --font-size-xs: 0.75rem;
+    --font-size-sm: 0.875rem;
+    --font-size-base: 1rem;
+    --font-size-lg: 1.125rem;
+    --font-size-xl: 1.25rem;
+    --font-size-2xl: 1.5rem;
+    --font-size-3xl: 1.875rem;
+    --font-size-4xl: 2.25rem;
+    
+    /* Shadows */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
   }
 
   .dark {
@@ -93,5 +119,57 @@
   }
   .bg-error {
     background-color: hsl(var(--error));
+  }
+  
+  /* Layout utilities */
+  .container-custom {
+    max-width: var(--container-max-width);
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: var(--container-padding);
+    padding-right: var(--container-padding);
+  }
+  
+  /* Animation utilities */
+  .animate-fade-in {
+    animation: fade-in var(--animation-duration-normal) ease-out;
+  }
+  
+  .animate-slide-up {
+    animation: slide-up var(--animation-duration-normal) ease-out;
+  }
+  
+  /* Shadow utilities */
+  .shadow-custom-sm {
+    box-shadow: var(--shadow-sm);
+  }
+  
+  .shadow-custom-md {
+    box-shadow: var(--shadow-md);
+  }
+  
+  .shadow-custom-lg {
+    box-shadow: var(--shadow-lg);
+  }
+}
+
+/* Custom animations */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(1rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
