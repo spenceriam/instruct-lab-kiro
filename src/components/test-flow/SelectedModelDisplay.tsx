@@ -10,7 +10,7 @@ interface SelectedModelDisplayProps {
 
 export default function SelectedModelDisplay({ model, onChangeModel }: SelectedModelDisplayProps) {
   const formatPrice = (price: number) => {
-    return `$${price.toFixed(4)}/1K tokens`
+    return `$${(price || 0).toFixed(4)}/1K tokens`
   }
 
   const getProviderColor = (provider: string) => {
@@ -59,21 +59,21 @@ export default function SelectedModelDisplay({ model, onChangeModel }: SelectedM
         <div className="text-center">
           <div className="text-xs text-muted-foreground mb-1">Context Length</div>
           <div className="text-sm font-medium text-foreground">
-            {model.contextLength.toLocaleString()} tokens
+            {(model.contextLength || 0).toLocaleString()} tokens
           </div>
         </div>
         
         <div className="text-center">
           <div className="text-xs text-muted-foreground mb-1">Input Price</div>
           <div className="text-sm font-medium text-foreground">
-            {formatPrice(model.pricing.prompt)}
+            {formatPrice(model.pricing?.prompt || 0)}
           </div>
         </div>
         
         <div className="text-center">
           <div className="text-xs text-muted-foreground mb-1">Output Price</div>
           <div className="text-sm font-medium text-foreground">
-            {formatPrice(model.pricing.completion)}
+            {formatPrice(model.pricing?.completion || 0)}
           </div>
         </div>
       </div>

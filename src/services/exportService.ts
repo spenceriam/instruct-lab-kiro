@@ -34,7 +34,7 @@ export interface SingleTestExportData {
   version: string
 }
 
-export type ExportFormat = 'json' | 'csv' | 'pdf'
+export type ExportFormat = 'json' | 'markdown' | 'pdf'
 
 export class ExportService {
   private static readonly VERSION = '1.0.0'
@@ -80,8 +80,8 @@ export class ExportService {
       case 'json':
         await this.downloadJSON(exportData, `${filename}.json`)
         break
-      case 'csv':
-        await this.downloadSingleTestCSV(testRun, `${filename}.csv`)
+      case 'markdown':
+        await this.downloadSingleTestMarkdown(testRun, `${filename}.md`)
         break
       case 'pdf':
         await this.downloadSingleTestPDF(testRun)
@@ -109,8 +109,8 @@ export class ExportService {
       case 'json':
         await this.downloadJSON(exportData, `${filename}.json`)
         break
-      case 'csv':
-        await this.downloadHistoryCSV(testRuns, `${filename}.csv`)
+      case 'markdown':
+        await this.downloadHistoryMarkdown(testRuns, `${filename}.md`)
         break
       case 'pdf':
         await this.downloadHistoryPDF(exportData)
@@ -208,98 +208,128 @@ export class ExportService {
   }
 
   /**
-   * Download single test as CSV
+   * Download single test as Markdown
    */
-  private static async downloadSingleTestCSV(testRun: TestRun, filename: string): Promise<void> {
-    const headers = [
-      'Timestamp',
-      'Model',
-      'Provider',
-      'Overall Score',
-      'Coherence Score',
-      'Task Completion Score', 
-      'Instruction Adherence Score',
-      'Efficiency Score',
-      'Instructions',
-      'Response'
-    ]
+  private static async downloadSingleTestMarkdown(testRun: TestRun, filename: string): Promise<void> {
+    const markdownContent = `# Test Results Report
 
-    const row = [
-      new Date(testRun.timestamp).toLocaleString(),
-      testRun.model,
-      testRun.modelProvider,
-      testRun.metrics.overallScore.toString(),
-      testRun.metrics.coherenceScore.toString(),
-      testRun.metrics.taskCompletionScore.toString(),
-      testRun.metrics.instructionAdherenceScore.toString(),
-      testRun.metrics.efficiencyScore.toString(),
-      this.escapeCsvField(testRun.instructions),
-      this.escapeCsvField(testRun.response)
-    ]
+## Test Information
+- **Date:** ${new Date(testRun.timestamp).toLocaleString()}
+- **Model:** ${testRun.model}
+- **Provider:** ${testRun.modelProvider}
+- **Execution Time:** ${testRun.executionTime}ms
+- **Cost:** $${testRun.cost.toFixed(4)}
 
-    const csvContent = [headers, row]
-      .map(row => row.join(','))
-      .join('\n')
+## Evaluation Scores
+- **Overall Score:** ${testRun.metrics.overallScore}/100
+- **Coherence:** ${testRun.metrics.coherenceScore}/100
+- **Task Completion:** ${testRun.metrics.taskCompletionScore}/100
+- **Instruction Adherence:** ${testRun.metrics.instructionAdherenceScore}/100
+- **Efficiency:** ${testRun.metrics.efficiencyScore}/100
 
-    const blob = new Blob([csvContent], { type: 'text/csv' })
+## System Instructions
+\`\`\`
+${testRun.instructions}
+\`\`\`
+
+## Test Prompt
+\`\`\`
+${testRun.prompt}
+\`\`\`
+
+## Model Response
+\`\`\`
+${testRun.response}
+\`\`\`
+
+## Evaluation Summary
+${testRun.metrics.explanation}
+
+## Token Usage
+- **Prompt Tokens:** ${testRun.tokenUsage.promptTokens}
+- **Completion Tokens:** ${testRun.tokenUsage.completionTokens}
+- **Total Tokens:** ${testRun.tokenUsage.totalTokens}
+`
+
+    const blob = new Blob([markdownContent], { type: 'text/markdown' })
     this.downloadBlob(blob, filename)
   }
 
   /**
-   * Download test history as CSV
+   * Download test history as Markdown
    */
-  private static async downloadHistoryCSV(testRuns: TestRun[], filename: string): Promise<void> {
-    const headers = [
-      'Test ID',
-      'Timestamp',
-      'Date',
-      'Model',
-      'Model Provider',
-      'Overall Score (%)',
-      'Coherence Score (%)',
-      'Task Completion Score (%)',
-      'Instruction Adherence Score (%)',
-      'Efficiency Score (%)',
-      'Prompt Tokens',
-      'Completion Tokens',
-      'Total Tokens',
-      'Execution Time (ms)',
-      'Cost ($)',
-      'Instructions',
-      'Prompt',
-      'Response',
-      'Evaluation Explanation'
-    ]
+  private static async downloadHistoryMarkdown(testRuns: TestRun[], filename: string): Promise<void> {
+    const sortedTests = testRuns.sort((a, b) => b.timestamp - a.timestamp)
+    
+    let markdownContent = `# Test History Report
 
-    const rows = testRuns
-      .sort((a, b) => b.timestamp - a.timestamp)
-      .map(test => [
-        test.id,
-        test.timestamp.toString(),
-        new Date(test.timestamp).toISOString(),
-        test.model,
-        test.modelProvider,
-        test.metrics.overallScore.toString(),
-        test.metrics.coherenceScore.toString(),
-        test.metrics.taskCompletionScore.toString(),
-        test.metrics.instructionAdherenceScore.toString(),
-        test.metrics.efficiencyScore.toString(),
-        test.tokenUsage.promptTokens.toString(),
-        test.tokenUsage.completionTokens.toString(),
-        test.tokenUsage.totalTokens.toString(),
-        test.executionTime.toString(),
-        test.cost.toString(),
-        this.escapeCsvField(test.instructions),
-        this.escapeCsvField(test.prompt),
-        this.escapeCsvField(test.response),
-        this.escapeCsvField(test.metrics.explanation)
-      ])
+Generated on: ${new Date().toLocaleString()}
+Total Tests: ${testRuns.length}
 
-    const csvContent = [headers, ...rows]
-      .map(row => row.join(','))
-      .join('\n')
+## Summary
 
-    const blob = new Blob([csvContent], { type: 'text/csv' })
+| Metric | Average Score |
+|--------|---------------|`
+
+    // Calculate averages
+    const avgOverall = Math.round(testRuns.reduce((sum, test) => sum + test.metrics.overallScore, 0) / testRuns.length)
+    const avgCoherence = Math.round(testRuns.reduce((sum, test) => sum + test.metrics.coherenceScore, 0) / testRuns.length)
+    const avgTaskCompletion = Math.round(testRuns.reduce((sum, test) => sum + test.metrics.taskCompletionScore, 0) / testRuns.length)
+    const avgInstructionAdherence = Math.round(testRuns.reduce((sum, test) => sum + test.metrics.instructionAdherenceScore, 0) / testRuns.length)
+    const avgEfficiency = Math.round(testRuns.reduce((sum, test) => sum + test.metrics.efficiencyScore, 0) / testRuns.length)
+
+    markdownContent += `
+| Overall | ${avgOverall}/100 |
+| Coherence | ${avgCoherence}/100 |
+| Task Completion | ${avgTaskCompletion}/100 |
+| Instruction Adherence | ${avgInstructionAdherence}/100 |
+| Efficiency | ${avgEfficiency}/100 |
+
+## Test Results
+
+`
+
+    sortedTests.forEach((test, index) => {
+      markdownContent += `### Test ${index + 1} - ${new Date(test.timestamp).toLocaleString()}
+
+**Model:** ${test.model} (${test.modelProvider})
+**Overall Score:** ${test.metrics.overallScore}/100
+
+#### Detailed Scores
+- Coherence: ${test.metrics.coherenceScore}/100
+- Task Completion: ${test.metrics.taskCompletionScore}/100
+- Instruction Adherence: ${test.metrics.instructionAdherenceScore}/100
+- Efficiency: ${test.metrics.efficiencyScore}/100
+
+#### Performance
+- Execution Time: ${test.executionTime}ms
+- Cost: $${test.cost.toFixed(4)}
+- Tokens: ${test.tokenUsage.totalTokens} (${test.tokenUsage.promptTokens} prompt + ${test.tokenUsage.completionTokens} completion)
+
+#### System Instructions
+\`\`\`
+${test.instructions}
+\`\`\`
+
+#### Test Prompt
+\`\`\`
+${test.prompt}
+\`\`\`
+
+#### Model Response
+\`\`\`
+${test.response}
+\`\`\`
+
+#### Evaluation Summary
+${test.metrics.explanation}
+
+---
+
+`
+    })
+
+    const blob = new Blob([markdownContent], { type: 'text/markdown' })
     this.downloadBlob(blob, filename)
   }
 
@@ -684,13 +714,6 @@ export class ExportService {
 
   private static formatDateForFilename(date: Date): string {
     return date.toISOString().split('T')[0].replace(/-/g, '')
-  }
-
-  private static escapeCsvField(field: string): string {
-    if (field.includes(',') || field.includes('"') || field.includes('\n')) {
-      return `"${field.replace(/"/g, '""')}"`
-    }
-    return field
   }
 
   private static escapeHtml(text: string): string {

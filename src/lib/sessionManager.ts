@@ -186,6 +186,19 @@ export class SessionManager {
   }
 
   /**
+   * Emergency clear all storage data
+   */
+  static clearAllStorage(): void {
+    try {
+      sessionStorage.clear()
+      localStorage.clear()
+      console.log('All storage cleared')
+    } catch (error) {
+      console.error('Failed to clear all storage:', error)
+    }
+  }
+
+  /**
    * Checks if a session has expired
    */
   static isSessionExpired(sessionData: SessionData): boolean {
@@ -219,7 +232,8 @@ export class SessionManager {
     // For session data, we use a simpler encryption approach
     // The API key within the session is already encrypted separately
     try {
-      return btoa(data) // Simple base64 encoding for session metadata
+      // Properly encode UTF-8 to base64
+      return btoa(unescape(encodeURIComponent(data)))
     } catch (error) {
       console.error('Failed to encrypt session data:', error)
       return data // Fallback to unencrypted
@@ -231,10 +245,23 @@ export class SessionManager {
    */
   private static async decryptSessionData(encryptedData: string): Promise<string> {
     try {
-      return atob(encryptedData) // Simple base64 decoding
+      // Validate base64 format before attempting to decode
+      if (!encryptedData || typeof encryptedData !== 'string') {
+        throw new Error('Invalid encrypted data format')
+      }
+      
+      // Check if it's valid base64
+      const base64Regex = /^[A-Za-z0-9+/]*={0,2}$/
+      if (!base64Regex.test(encryptedData)) {
+        throw new Error('Invalid base64 format')
+      }
+      
+      // Properly decode base64 to UTF-8
+      return decodeURIComponent(escape(atob(encryptedData)))
     } catch (error) {
       console.error('Failed to decrypt session data:', error)
-      return encryptedData // Assume unencrypted
+      // Clear the corrupted data instead of returning it
+      throw new Error('Corrupted session data detected')
     }
   }
 

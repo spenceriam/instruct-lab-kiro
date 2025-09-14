@@ -12,8 +12,8 @@ import {
 
 export interface TestParams {
   apiKey: string
-  model: Model
-  evaluationModel: Model
+  model: Model | null
+  evaluationModel: Model | null
   systemInstructions: string
   userPrompt: string
   temperature?: number
@@ -120,7 +120,7 @@ export class EvaluationEngine {
       appError.context = {
         ...appError.context,
         operation: 'evaluation',
-        model: params.model.id,
+        model: params.model?.id || 'unknown',
         instructionsLength: params.systemInstructions.length,
         promptLength: params.userPrompt.length,
         executionTime: Date.now() - startTime
@@ -134,6 +134,10 @@ export class EvaluationEngine {
    * Execute the primary test using the user's selected model and instructions
    */
   private static async executePrimaryTest(params: TestParams, operationId: string): Promise<OpenRouterResponse> {
+    if (!params.model?.id) {
+      throw new Error('Model is required for evaluation')
+    }
+
     const request: OpenRouterRequest = {
       model: params.model.id,
       messages: [
@@ -163,7 +167,7 @@ export class EvaluationEngine {
       appError.context = {
         ...appError.context,
         phase: 'primary_test',
-        model: params.model.id,
+        model: params.model?.id || 'unknown',
         operationId
       }
       throw appError
@@ -182,6 +186,10 @@ export class EvaluationEngine {
       params.prompt,
       params.response
     )
+
+    if (!params.evaluationModel?.id) {
+      throw new Error('Evaluation model is required for evaluation')
+    }
 
     const request: OpenRouterRequest = {
       model: params.evaluationModel.id,
@@ -219,7 +227,7 @@ export class EvaluationEngine {
       appError.context = {
         ...appError.context,
         phase: 'evaluation',
-        evaluationModel: params.evaluationModel.id,
+        evaluationModel: params.evaluationModel?.id || 'unknown',
         operationId
       }
       throw appError
@@ -348,13 +356,13 @@ Ensure the JSON is valid and contains only the requested fields with numeric sco
     evaluationModel: Model
   ): number {
     // Calculate primary test cost
-    const primaryPromptCost = (primaryResponse.usage.prompt_tokens / 1000000) * model.pricing.prompt
-    const primaryCompletionCost = (primaryResponse.usage.completion_tokens / 1000000) * model.pricing.completion
+    const primaryPromptCost = (primaryResponse.usage.prompt_tokens / 1000000) * (model.pricing?.prompt || 0)
+    const primaryCompletionCost = (primaryResponse.usage.completion_tokens / 1000000) * (model.pricing?.completion || 0)
     const primaryTestCost = primaryPromptCost + primaryCompletionCost
 
     // Calculate evaluation cost using the selected evaluation model's pricing
-    const evaluationPromptCost = (evaluationTokens.promptTokens / 1000000) * evaluationModel.pricing.prompt
-    const evaluationCompletionCost = (evaluationTokens.completionTokens / 1000000) * evaluationModel.pricing.completion
+    const evaluationPromptCost = (evaluationTokens.promptTokens / 1000000) * (evaluationModel.pricing?.prompt || 0)
+    const evaluationCompletionCost = (evaluationTokens.completionTokens / 1000000) * (evaluationModel.pricing?.completion || 0)
     const evaluationCost = evaluationPromptCost + evaluationCompletionCost
 
     return primaryTestCost + evaluationCost

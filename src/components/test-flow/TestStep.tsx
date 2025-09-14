@@ -13,6 +13,7 @@ interface TestStepProps {
 export default function TestStep({ onBack }: TestStepProps) {
   const { 
     currentTest, 
+    settings,
     setPrompt, 
     setCurrentStep, 
     runEvaluation,
@@ -58,12 +59,12 @@ export default function TestStep({ onBack }: TestStepProps) {
         <div className="bg-muted/50 p-3 rounded-lg">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium">{currentTest.model.name}</p>
-              <p className="text-xs text-muted-foreground">{currentTest.model.provider}</p>
+              <p className="text-sm font-medium">{currentTest.model?.name || 'Unknown Model'}</p>
+              <p className="text-xs text-muted-foreground">{currentTest.model?.provider || 'Unknown Provider'}</p>
             </div>
             <div className="text-right">
               <p className="text-xs text-muted-foreground">Context Length</p>
-              <p className="text-sm font-medium">{currentTest.model.contextLength.toLocaleString()}</p>
+              <p className="text-sm font-medium">{(currentTest.model.contextLength || 0).toLocaleString()}</p>
             </div>
           </div>
         </div>
@@ -89,6 +90,27 @@ export default function TestStep({ onBack }: TestStepProps) {
             id="prompt"
             value={prompt}
             onChange={(e) => setPromptLocal(e.target.value)}
+            onKeyDown={(e) => {
+              // Prevent any keyboard shortcuts except basic text editing
+              if (e.key === 'Escape' || e.key === 'F1' || e.key === 'F2' || e.key === 'F3' || 
+                  e.key === 'F4' || e.key === 'F5' || e.key === 'F6' || e.key === 'F7' || 
+                  e.key === 'F8' || e.key === 'F9' || e.key === 'F10' || e.key === 'F11' || e.key === 'F12') {
+                e.preventDefault()
+                e.stopPropagation()
+              }
+              // Allow only basic text editing shortcuts
+              const isBasicShortcut = (
+                (e.ctrlKey || e.metaKey) && (
+                  e.key === 'a' || e.key === 'c' || e.key === 'v' || e.key === 'x' || 
+                  e.key === 'z' || e.key === 'y' || e.key === 'ArrowLeft' || e.key === 'ArrowRight'
+                )
+              )
+              if (!isBasicShortcut && (e.ctrlKey || e.metaKey || e.altKey)) {
+                // Block any other keyboard shortcuts
+                e.preventDefault()
+                e.stopPropagation()
+              }
+            }}
             placeholder="Write a short story about..."
             className={`${getInputClasses(validation.status)} min-h-[120px]`}
             rows={5}
@@ -114,7 +136,7 @@ export default function TestStep({ onBack }: TestStepProps) {
         </h4>
         <ol className="text-xs text-blue-800 dark:text-blue-200 space-y-1 list-decimal list-inside">
           <li>Your prompt will be sent to {currentTest.model?.name} with your system instructions</li>
-          <li>The response will be evaluated by GPT-4 for quality and instruction adherence</li>
+          <li>The response will be evaluated by {settings.evaluationModel?.name || 'the evaluation model'} for quality and instruction adherence</li>
           <li>You&apos;ll receive detailed metrics and an overall success score</li>
           <li>Results will be saved to your session history for comparison</li>
         </ol>
@@ -147,20 +169,7 @@ export default function TestStep({ onBack }: TestStepProps) {
         </button>
       </div>
 
-      {/* Loading State */}
-      {isLoading && (
-        <div className="bg-muted/50 p-4 rounded-lg border">
-          <div className="flex items-center gap-3">
-            <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-            <div>
-              <p className="text-sm font-medium">Running evaluation...</p>
-              <p className="text-xs text-muted-foreground">
-                This may take 10-30 seconds depending on the model and prompt complexity.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+
     </div>
   )
 }

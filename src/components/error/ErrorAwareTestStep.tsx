@@ -153,12 +153,12 @@ export default function ErrorAwareTestStep({ onBack }: ErrorAwareTestStepProps) 
           <div className="bg-muted/50 p-3 rounded-lg">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium">{currentTest.model.name}</p>
-                <p className="text-xs text-muted-foreground">{currentTest.model.provider}</p>
+                <p className="text-sm font-medium">{currentTest.model?.name || 'Unknown Model'}</p>
+                <p className="text-xs text-muted-foreground">{currentTest.model?.provider || 'Unknown Provider'}</p>
               </div>
               <div className="text-right">
                 <p className="text-xs text-muted-foreground">Context Length</p>
-                <p className="text-sm font-medium">{currentTest.model.contextLength.toLocaleString()}</p>
+                <p className="text-sm font-medium">{(currentTest.model.contextLength || 0).toLocaleString()}</p>
               </div>
             </div>
           </div>

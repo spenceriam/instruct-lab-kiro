@@ -104,6 +104,7 @@ export interface AppActions {
   setApiKey: (key: string) => Promise<void>
   clearApiKey: () => Promise<void>
   resetSession: () => Promise<void>
+  clearAllData: () => Promise<void>
   
   // Test flow management
   startTest: () => void

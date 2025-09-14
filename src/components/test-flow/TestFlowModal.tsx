@@ -4,6 +4,7 @@ import React, { useEffect, Suspense, createElement } from 'react'
 import Modal from '@/components/ui/Modal'
 import { useAppStore } from '@/lib/store'
 import { announceToScreenReader } from '@/lib/accessibility'
+import { X } from 'phosphor-react'
 import dynamic from 'next/dynamic'
 
 // Step skeleton component
@@ -76,7 +77,7 @@ export default function TestFlowModal({ isOpen, onClose }: TestFlowModalProps) {
       title: 'Results',
       description: 'View evaluation results',
       isAccessible: (test) => !!test.results && !!test.response,
-      isComplete: () => true // Results step is always complete when accessible
+      isComplete: (test) => !!test.results && !!test.response && test.status === 'complete'
     }
   ]
 
@@ -87,6 +88,33 @@ export default function TestFlowModal({ isOpen, onClose }: TestFlowModalProps) {
       announceToScreenReader(`Now on step ${currentStep + 1} of 4: ${stepConfig.title}. ${stepConfig.description}`)
     }
   }, [currentStep, isOpen])
+
+  // Prevent unwanted keyboard shortcuts when modal is open
+  useEffect(() => {
+    if (!isOpen) return
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Block problematic keys that might cause navigation issues
+      if (e.key === 'F1' || e.key === 'F2' || e.key === 'F3' || e.key === 'F4' || 
+          e.key === 'F5' || e.key === 'F6' || e.key === 'F7' || e.key === 'F8' || 
+          e.key === 'F9' || e.key === 'F10' || e.key === 'F11' || e.key === 'F12') {
+        e.preventDefault()
+        e.stopPropagation()
+      }
+      
+      // Block Alt+key combinations that might interfere
+      if (e.altKey && e.key !== 'Tab') {
+        e.preventDefault()
+        e.stopPropagation()
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown, true)
+    
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown, true)
+    }
+  }, [isOpen])
 
   // Handle tab navigation with validation
   const handleStepClick = (stepIndex: number) => {
@@ -142,10 +170,34 @@ export default function TestFlowModal({ isOpen, onClose }: TestFlowModalProps) {
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Test Your Instructions"
       size="lg"
       className="max-w-4xl"
+      closable={false}
     >
+      {/* Close Button with Confirmation */}
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-lg font-semibold">Test Your Instructions</h2>
+        <button
+          onClick={() => {
+            const hasUnsavedData = currentTest.instructions || currentTest.prompt
+            if (hasUnsavedData) {
+              const confirmed = window.confirm(
+                'You have unsaved changes. Are you sure you want to close? Your progress will be lost.'
+              )
+              if (confirmed) {
+                onClose()
+              }
+            } else {
+              onClose()
+            }
+          }}
+          className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
+          aria-label="Close modal"
+        >
+          <X size={20} />
+        </button>
+      </div>
+
       {/* Step Progress Indicator */}
       <nav className="mb-6" aria-label="Test flow progress">
         <div className="flex items-center justify-between" role="tablist">

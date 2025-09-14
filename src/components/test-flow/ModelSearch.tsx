@@ -5,7 +5,7 @@ import { MagnifyingGlass, Spinner, X } from 'phosphor-react'
 import { useAppStore } from '@/lib/store'
 import { Model } from '@/lib/types'
 import { useDebounce } from '@/lib/utils'
-import { announceToScreenReader, generateId, handleArrowNavigation } from '@/lib/accessibility'
+import { announceToScreenReader, generateId } from '@/lib/accessibility'
 import { ModelSearchSkeleton } from '@/components/ui/LoadingStates'
 
 interface ModelSearchProps {
@@ -17,7 +17,7 @@ export default function ModelSearch({ onClose, isEvaluationModel = false }: Mode
   const { availableModels, isLoading, fetchModels, searchModels, selectModel, selectEvaluationModel } = useAppStore()
   const [searchQuery, setSearchQuery] = useState('')
   const [isSearching, setIsSearching] = useState(false)
-  const [focusedIndex, setFocusedIndex] = useState(-1)
+  // Removed focusedIndex to prevent keyboard navigation interference
   
   // Generate unique IDs for accessibility
   const searchId = generateId('model-search')
@@ -55,10 +55,7 @@ export default function ModelSearch({ onClose, isEvaluationModel = false }: Mode
     }
   }, [searchQuery, debouncedQuery])
 
-  // Reset focused index when filtered models change
-  useEffect(() => {
-    setFocusedIndex(-1)
-  }, [filteredModels])
+  // Removed focus management to prevent interference
 
   const handleModelSelect = (model: Model) => {
     if (isEvaluationModel) {
@@ -71,23 +68,10 @@ export default function ModelSearch({ onClose, isEvaluationModel = false }: Mode
     onClose()
   }
 
-  const handleKeyDown = (event: React.KeyboardEvent) => {
-    const modelButtons = Array.from(document.querySelectorAll('[data-model-button]')) as HTMLElement[]
-    
-    if (modelButtons.length === 0) return
-
-    handleArrowNavigation(event, modelButtons, focusedIndex, (newIndex) => {
-      setFocusedIndex(newIndex)
-    })
-
-    if (event.key === 'Enter' && focusedIndex >= 0 && filteredModels[focusedIndex]) {
-      event.preventDefault()
-      handleModelSelect(filteredModels[focusedIndex])
-    }
-  }
+  // Removed keyboard navigation to prevent interference with typing
 
   const formatPrice = (price: number) => {
-    return `$${price.toFixed(4)}/1K tokens`
+    return `$${(price || 0).toFixed(4)}/1K tokens`
   }
 
   const getProviderColor = (provider: string) => {
@@ -131,7 +115,7 @@ export default function ModelSearch({ onClose, isEvaluationModel = false }: Mode
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={handleKeyDown}
+
             placeholder="Search models by name, provider, or description..."
             className="w-full pl-10 pr-4 py-2 border border-input rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus-visible-enhanced"
             aria-describedby={statusId}
@@ -173,7 +157,7 @@ export default function ModelSearch({ onClose, isEvaluationModel = false }: Mode
                 onClick={() => handleModelSelect(model)}
                 className="w-full p-4 text-left hover:bg-accent transition-colors focus:outline-none focus:bg-accent focus-visible-enhanced"
                 role="option"
-                aria-selected={index === focusedIndex}
+                aria-selected={false}
                 aria-describedby={`model-${model.id}-details`}
               >
                 <div className="flex items-start justify-between">
@@ -200,14 +184,14 @@ export default function ModelSearch({ onClose, isEvaluationModel = false }: Mode
                       id={`model-${model.id}-details`}
                       className="flex items-center gap-4 text-xs text-muted-foreground"
                     >
-                      <span aria-label={`Context length: ${model.contextLength.toLocaleString()} tokens`}>
-                        Context: {model.contextLength.toLocaleString()} tokens
+                      <span aria-label={`Context length: ${(model.contextLength || 0).toLocaleString()} tokens`}>
+                        Context: {(model.contextLength || 0).toLocaleString()} tokens
                       </span>
-                      <span aria-label={`Input price: ${formatPrice(model.pricing.prompt)}`}>
-                        Input: {formatPrice(model.pricing.prompt)}
+                      <span aria-label={`Input price: ${formatPrice(model.pricing?.prompt || 0)}`}>
+                        Input: {formatPrice(model.pricing?.prompt || 0)}
                       </span>
-                      <span aria-label={`Output price: ${formatPrice(model.pricing.completion)}`}>
-                        Output: {formatPrice(model.pricing.completion)}
+                      <span aria-label={`Output price: ${formatPrice(model.pricing?.completion || 0)}`}>
+                        Output: {formatPrice(model.pricing?.completion || 0)}
                       </span>
                     </div>
                   </div>

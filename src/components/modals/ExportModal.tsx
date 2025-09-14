@@ -31,11 +31,11 @@ const exportOptions: ExportOption[] = [
     fileExtension: '.json'
   },
   {
-    format: 'csv',
-    label: 'CSV',
-    description: 'Spreadsheet format for analysis and visualization',
-    icon: <Table size={20} />,
-    fileExtension: '.csv'
+    format: 'markdown',
+    label: 'Markdown',
+    description: 'Formatted text document for documentation and sharing',
+    icon: <FileText size={20} />,
+    fileExtension: '.md'
   },
   {
     format: 'pdf',
@@ -114,8 +114,8 @@ export default function ExportModal({
   const selectedOption = exportOptions.find(option => option.format === selectedFormat)
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose}>
-      <div className="bg-card border border-border rounded-lg shadow-custom-lg max-w-md w-full mx-4">
+    <Modal isOpen={isOpen} onClose={handleClose} size="lg">
+      <div className="bg-card border border-border rounded-lg shadow-custom-lg w-full">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-border">
           <h2 className="text-lg font-semibold text-foreground">

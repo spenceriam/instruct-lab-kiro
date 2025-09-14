@@ -56,22 +56,9 @@ export default function Modal({
       // Add event listeners
       document.addEventListener('keydown', handleEscape)
       
-      // Set up focus trap
+      // Focus trapping and auto-focus disabled to prevent interference with typing
       if (modalRef.current) {
-        cleanupFocusTrap = trapFocus(modalRef.current)
-        
-        // Focus first element after a brief delay to ensure modal is rendered
-        setTimeout(() => {
-          const focusableElements = modalRef.current?.querySelectorAll(
-            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-          )
-          const firstElement = focusableElements?.[0] as HTMLElement
-          if (firstElement) {
-            firstElement.focus()
-          }
-        }, 100)
-        
-        // Announce modal opening
+        // Only announce modal opening, no focus manipulation
         announceToScreenReader(`Modal opened: ${title || ariaLabel || 'Dialog'}`)
       }
     } else {
@@ -87,9 +74,7 @@ export default function Modal({
       document.removeEventListener('keydown', handleEscape)
       document.body.style.overflow = 'unset'
       document.body.removeAttribute('aria-hidden')
-      if (cleanupFocusTrap) {
-        cleanupFocusTrap()
-      }
+      // Focus trap cleanup removed
     }
   }, [isOpen, closable, onClose, title, ariaLabel])
 

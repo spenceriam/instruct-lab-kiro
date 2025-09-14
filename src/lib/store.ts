@@ -78,22 +78,68 @@ export const useAppStore = create<AppState & AppActions>()(
             }
 
             SessionManager.initialize()
+            
+            // Try to restore auto-saved draft
+            try {
+              const savedDraft = sessionStorage.getItem('instruct-lab-draft')
+              if (savedDraft) {
+                const draftTest = JSON.parse(savedDraft)
+                const { currentTest } = get()
+                set({
+                  currentTest: {
+                    ...currentTest,
+                    instructions: draftTest.instructions || currentTest.instructions,
+                    prompt: draftTest.prompt || currentTest.prompt
+                  }
+                })
+              }
+            } catch (error) {
+              console.warn('Failed to restore auto-saved draft, clearing it:', error)
+              try {
+                sessionStorage.removeItem('instruct-lab-draft')
+              } catch (clearError) {
+                console.error('Failed to clear corrupted draft:', clearError)
+              }
+            }
 
             // Try to load existing session
-            const existingSession = await SessionManager.loadSession()
+            let existingSession
+            try {
+              existingSession = await SessionManager.loadSession()
+            } catch (error) {
+              console.error('Failed to load session, clearing all data:', error)
+              // Clear all potentially corrupted data
+              try {
+                sessionStorage.clear()
+                localStorage.clear()
+              } catch (clearError) {
+                console.error('Failed to clear storage:', clearError)
+              }
+              existingSession = null
+            }
             
             if (existingSession) {
               // Load session data into store
-              const apiKey = await SessionManager.getApiKey(existingSession)
+              let apiKey
+              try {
+                apiKey = await SessionManager.getApiKey(existingSession)
+              } catch (error) {
+                console.error('Failed to get API key, clearing session:', error)
+                await SessionManager.clearSession()
+                existingSession = null
+                apiKey = null
+              }
               
-              set({
-                sessionId: existingSession.sessionId,
-                apiKey,
-                isApiKeyValid: !!apiKey && SecurityManager.validateApiKeyFormat(apiKey),
-                testHistory: existingSession.testHistory,
-                currentTest: existingSession.currentTest,
-                settings: existingSession.settings
-              })
+              if (existingSession && apiKey) {
+                set({
+                  sessionId: existingSession.sessionId,
+                  apiKey,
+                  isApiKeyValid: !!apiKey && SecurityManager.validateApiKeyFormat(apiKey),
+                  testHistory: existingSession.testHistory,
+                  currentTest: existingSession.currentTest,
+                  settings: existingSession.settings
+                })
+              }
             } else {
               // Create new session
               const newSession = SessionManager.createSession()
@@ -121,8 +167,9 @@ export const useAppStore = create<AppState & AppActions>()(
             }
           } catch (error) {
             console.error('Failed to initialize session:', error)
+            console.log('To recover from this error, run: useAppStore.getState().clearAllData()')
             set({ 
-              error: error instanceof Error ? error.message : 'Failed to initialize session',
+              error: (error instanceof Error ? error.message : 'Failed to initialize session') + '. Try refreshing or run clearAllData() in console.',
               sessionId: SecurityManager.generateSessionId()
             })
           }
@@ -227,6 +274,21 @@ export const useAppStore = create<AppState & AppActions>()(
           }
         },
 
+        clearAllData: async () => {
+          try {
+            // Clear all storage data
+            sessionStorage.clear()
+            localStorage.clear()
+            
+            // Reset store to initial state
+            set(defaultState)
+            
+            console.log('All data cleared successfully')
+          } catch (error) {
+            console.error('Failed to clear all data:', error)
+          }
+        },
+
         // Test flow management actions
         startTest: () => {
           set({
@@ -251,6 +313,12 @@ export const useAppStore = create<AppState & AppActions>()(
         },
 
         selectModel: (model: Model) => {
+          // Validate that the model has required properties
+          if (!model || !model.id || !model.name) {
+            console.warn('Invalid model provided:', model)
+            return
+          }
+          
           const { currentTest } = get()
           set({
             currentTest: {
@@ -261,6 +329,12 @@ export const useAppStore = create<AppState & AppActions>()(
         },
 
         selectEvaluationModel: (model: Model) => {
+          // Validate that the model has required properties
+          if (!model || !model.id || !model.name) {
+            console.warn('Invalid evaluation model provided:', model)
+            return
+          }
+          
           const { settings } = get()
           set({
             settings: {
@@ -272,22 +346,38 @@ export const useAppStore = create<AppState & AppActions>()(
 
         setInstructions: (instructions: string) => {
           const { currentTest } = get()
+          const updatedTest = {
+            ...currentTest,
+            instructions
+          }
           set({
-            currentTest: {
-              ...currentTest,
-              instructions
-            }
+            currentTest: updatedTest
           })
+          
+          // Auto-save to session storage to prevent data loss
+          try {
+            sessionStorage.setItem('instruct-lab-draft', JSON.stringify(updatedTest))
+          } catch (error) {
+            console.warn('Failed to auto-save instructions:', error)
+          }
         },
 
         setPrompt: (prompt: string) => {
           const { currentTest } = get()
+          const updatedTest = {
+            ...currentTest,
+            prompt
+          }
           set({
-            currentTest: {
-              ...currentTest,
-              prompt
-            }
+            currentTest: updatedTest
           })
+          
+          // Auto-save to session storage to prevent data loss
+          try {
+            sessionStorage.setItem('instruct-lab-draft', JSON.stringify(updatedTest))
+          } catch (error) {
+            console.warn('Failed to auto-save prompt:', error)
+          }
         },
 
         runEvaluation: async () => {
@@ -319,6 +409,14 @@ export const useAppStore = create<AppState & AppActions>()(
           })
 
           try {
+            console.log('Starting evaluation with params:', {
+              model: currentTest.model?.name,
+              evaluationModel: settings.evaluationModel?.name,
+              hasApiKey: !!apiKey,
+              hasInstructions: !!currentTest.instructions,
+              hasPrompt: !!currentTest.prompt
+            })
+
             // Update status to evaluating when starting the evaluation phase
             set({
               currentTest: {
@@ -338,8 +436,10 @@ export const useAppStore = create<AppState & AppActions>()(
               maxTokens: settings.maxTokens
             }
 
+            console.log('Calling EvaluationEngine.executeEvaluation...')
             // Execute the dual-model evaluation
             const result = await EvaluationEngine.executeEvaluation(testParams)
+            console.log('Evaluation completed:', result)
 
             // Complete the test with results
             get().completeTest(result.metrics, result.response, result.tokenUsage, result.executionTime, result.cost)
@@ -386,8 +486,8 @@ export const useAppStore = create<AppState & AppActions>()(
             const testRun: TestRun = {
               id: crypto.randomUUID(),
               timestamp: Date.now(),
-              model: currentTest.model.name,
-              modelProvider: currentTest.model.provider,
+              model: currentTest.model?.name || 'Unknown Model',
+              modelProvider: currentTest.model?.provider || 'Unknown Provider',
               instructions: currentTest.instructions,
               prompt: currentTest.prompt,
               response,
@@ -409,6 +509,13 @@ export const useAppStore = create<AppState & AppActions>()(
           set({
             currentTest: defaultTestState
           })
+          
+          // Clear auto-saved draft
+          try {
+            sessionStorage.removeItem('instruct-lab-draft')
+          } catch (error) {
+            console.warn('Failed to clear auto-saved draft:', error)
+          }
         },
 
         // History management actions
@@ -598,8 +705,28 @@ export const useSessionActions = () => useAppStore((state) => ({
   initializeSession: state.initializeSession,
   setApiKey: state.setApiKey,
   clearApiKey: state.clearApiKey,
-  resetSession: state.resetSession
+  resetSession: state.resetSession,
+  clearAllData: state.clearAllData
 }))
+
+// Global recovery function for console access
+if (typeof window !== 'undefined') {
+  (window as any).clearAllData = () => {
+    try {
+      // Use SessionManager for more thorough clearing
+      const { SessionManager } = require('./sessionManager')
+      SessionManager.clearAllStorage()
+      useAppStore.getState().clearAllData()
+      console.log('All data cleared. Please refresh the page.')
+    } catch (error) {
+      console.error('Error clearing data:', error)
+      // Fallback to manual clearing
+      sessionStorage.clear()
+      localStorage.clear()
+      console.log('Fallback clear completed. Please refresh the page.')
+    }
+  }
+}
 
 export const useTestActions = () => useAppStore((state) => ({
   startTest: state.startTest,

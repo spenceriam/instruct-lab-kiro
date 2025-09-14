@@ -12,7 +12,7 @@ export default function SetupStep() {
   const [showModelSearch, setShowModelSearch] = useState(false)
   const [showEvaluationModelSearch, setShowEvaluationModelSearch] = useState(false)
 
-  const canProceed = isApiKeyValid && currentTest.model && settings.evaluationModel
+  const canProceed = isApiKeyValid && currentTest.model?.id && settings.evaluationModel?.id
 
   const handleNext = () => {
     if (canProceed) {
@@ -75,7 +75,7 @@ export default function SetupStep() {
             Choose the AI model that will evaluate and score the primary model's responses.
           </p>
           
-          {settings.evaluationModel ? (
+          {settings.evaluationModel && settings.evaluationModel.id ? (
             <SelectedModelDisplay 
               model={settings.evaluationModel}
               onChangeModel={() => setShowEvaluationModelSearch(true)}

@@ -53,6 +53,27 @@ export default function InstructionsStep({ onNext, onBack }: InstructionsStepPro
             id="instructions"
             value={instructions}
             onChange={(e) => setInstructionsLocal(e.target.value)}
+            onKeyDown={(e) => {
+              // Prevent any keyboard shortcuts except basic text editing
+              if (e.key === 'Escape' || e.key === 'F1' || e.key === 'F2' || e.key === 'F3' || 
+                  e.key === 'F4' || e.key === 'F5' || e.key === 'F6' || e.key === 'F7' || 
+                  e.key === 'F8' || e.key === 'F9' || e.key === 'F10' || e.key === 'F11' || e.key === 'F12') {
+                e.preventDefault()
+                e.stopPropagation()
+              }
+              // Allow only basic text editing shortcuts
+              const isBasicShortcut = (
+                (e.ctrlKey || e.metaKey) && (
+                  e.key === 'a' || e.key === 'c' || e.key === 'v' || e.key === 'x' || 
+                  e.key === 'z' || e.key === 'y' || e.key === 'ArrowLeft' || e.key === 'ArrowRight'
+                )
+              )
+              if (!isBasicShortcut && (e.ctrlKey || e.metaKey || e.altKey)) {
+                // Block any other keyboard shortcuts
+                e.preventDefault()
+                e.stopPropagation()
+              }
+            }}
             placeholder="You are a helpful assistant that..."
             className={`${getInputClasses(validation.status)} min-h-[200px]`}
             rows={8}

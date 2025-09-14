@@ -304,10 +304,10 @@ export class OpenRouterService {
         id: model.id,
         name: model.name,
         provider: this.extractProvider(model.id),
-        contextLength: model.context_length || model.top_provider?.context_length || 4096,
+        contextLength: Number(model.context_length || model.top_provider?.context_length || 4096) || 4096,
         pricing: {
-          prompt: parseFloat(model.pricing.prompt) || 0,
-          completion: parseFloat(model.pricing.completion) || 0
+          prompt: parseFloat(model.pricing?.prompt) || 0,
+          completion: parseFloat(model.pricing?.completion) || 0
         },
         description: model.description
       }))

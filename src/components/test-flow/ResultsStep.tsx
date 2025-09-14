@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import { CheckCircle, Clock, CurrencyDollar, Hash, ArrowClockwise, Download } from 'phosphor-react'
+import { CheckCircle, Clock, CurrencyDollar, Hash, ArrowClockwise, Download, Copy, CaretDown, CaretRight } from 'phosphor-react'
 import { useAppStore } from '@/lib/store'
 import { ExportModal } from '@/components/modals'
 import { TestRun } from '@/lib/types'
@@ -168,7 +168,7 @@ function StatCard({ icon, label, value, suffix = '', decimals = 0 }: StatCardPro
         {typeof value === 'number' ? (
           <AnimatedCounter value={value} suffix={suffix} decimals={decimals} />
         ) : (
-          <span className="truncate block" title={String(value)}>{value}</span>
+          <span className="break-words block" title={String(value)}>{value}</span>
         )}
       </div>
     </div>
@@ -179,6 +179,7 @@ export default function ResultsStep() {
   const { currentTest, setCurrentStep, resetCurrentTest } = useAppStore()
   const { results, response, model, tokenUsage, executionTime, cost } = currentTest
   const [showExportModal, setShowExportModal] = useState(false)
+  const [showInstructions, setShowInstructions] = useState(false)
 
   if (!results || !response || !model) {
     return (
@@ -207,6 +208,57 @@ export default function ResultsStep() {
 
   const handleExport = () => {
     setShowExportModal(true)
+  }
+
+  const handleCopyResults = async () => {
+    if (!results || !model || !response) return
+
+    const resultsText = `
+Test Results Summary
+===================
+
+Model: ${model.name}
+Provider: ${model.provider}
+
+Scores:
+- Overall Score: ${results.overallScore}/100
+- Coherence: ${results.coherenceScore}/100
+- Task Completion: ${results.taskCompletionScore}/100
+- Instruction Adherence: ${results.instructionAdherenceScore}/100
+- Efficiency: ${results.efficiencyScore}/100
+
+System Instructions:
+${currentTest.instructions}
+
+Test Prompt:
+${currentTest.prompt}
+
+Model Response:
+${response}
+
+Evaluation Summary:
+${results.explanation}
+
+Performance Metrics:
+- Execution Time: ${executionTime ? `${executionTime}ms` : 'N/A'}
+- Total Cost: ${cost ? `$${cost.toFixed(4)}` : 'N/A'}
+- Tokens Used: ${tokenUsage ? `${tokenUsage.totalTokens}` : 'N/A'}
+`.trim()
+
+    try {
+      await navigator.clipboard.writeText(resultsText)
+      // You could add a toast notification here
+      console.log('Results copied to clipboard')
+    } catch (error) {
+      console.error('Failed to copy results:', error)
+      // Fallback: select text for manual copy
+      const textArea = document.createElement('textarea')
+      textArea.value = resultsText
+      document.body.appendChild(textArea)
+      textArea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textArea)
+    }
   }
 
   // Use actual data or fallback to defaults
@@ -313,9 +365,41 @@ export default function ResultsStep() {
         </div>
       )}
 
+      {/* System Instructions (collapsible) */}
+      <div className="bg-muted/50 rounded-lg p-4">
+        <button
+          onClick={() => setShowInstructions(!showInstructions)}
+          className="flex items-center justify-between w-full text-left"
+        >
+          <h4 className="font-medium text-foreground">System Instructions</h4>
+          {showInstructions ? (
+            <CaretDown size={16} className="text-muted-foreground" />
+          ) : (
+            <CaretRight size={16} className="text-muted-foreground" />
+          )}
+        </button>
+        {showInstructions && (
+          <div className="mt-3 bg-background rounded border p-3 max-h-32 overflow-y-auto">
+            <p className="text-sm text-foreground font-mono whitespace-pre-wrap">
+              {currentTest.instructions}
+            </p>
+          </div>
+        )}
+      </div>
+
       {/* Response preview */}
       <div className="bg-muted/50 rounded-lg p-4">
-        <h4 className="font-medium text-foreground mb-2">Model Response</h4>
+        <div className="flex items-center justify-between mb-2">
+          <h4 className="font-medium text-foreground">Model Response</h4>
+          <button
+            onClick={() => handleCopyResults()}
+            className="flex items-center gap-1 px-2 py-1 text-xs text-muted-foreground hover:text-foreground border border-border rounded hover:bg-muted/50 transition-colors"
+            title="Copy all results to clipboard"
+          >
+            <Copy size={12} />
+            Copy Results
+          </button>
+        </div>
         <div className="bg-background rounded border p-3 max-h-32 overflow-y-auto">
           <p className="text-sm text-foreground font-mono whitespace-pre-wrap">
             {response}
