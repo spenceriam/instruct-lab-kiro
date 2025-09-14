@@ -1,9 +1,12 @@
 'use client'
 
+import { useState } from 'react'
 import Layout from '@/components/Layout'
 import Hero from '@/components/Hero'
 import FeatureGrid from '@/components/FeatureGrid'
 import TestHistory from '@/components/TestHistory'
+import { TestFlowModal } from '@/components/test-flow'
+import { useAppStore } from '@/lib/store'
 import {
   HelpModal,
   PrivacyModal,
@@ -15,6 +18,10 @@ import {
 } from '@/components/modals'
 
 export default function Home() {
+  const [isTestFlowOpen, setIsTestFlowOpen] = useState(false)
+  const [isHistoryLoading, setIsHistoryLoading] = useState(false)
+  const { testHistory, startTest, clearHistory } = useAppStore()
+
   const handleOpenHelp = () => {
     modalManager.open(HELP_MODAL_ID)
   }
@@ -33,8 +40,23 @@ export default function Home() {
   }
 
   const handleStartTesting = () => {
-    // TODO: Open test flow modal when implemented
-    console.log('Start testing flow')
+    startTest() // Initialize test state
+    setIsTestFlowOpen(true)
+  }
+
+  const handleCloseTestFlow = () => {
+    setIsTestFlowOpen(false)
+  }
+
+  const handleClearHistory = async () => {
+    setIsHistoryLoading(true)
+    try {
+      await clearHistory()
+    } catch (error) {
+      console.error('Failed to clear history:', error)
+    } finally {
+      setIsHistoryLoading(false)
+    }
   }
 
   return (
@@ -52,12 +74,17 @@ export default function Home() {
       
       {/* Test History */}
       <TestHistory 
-        testRuns={[]} // Empty for now, will be populated by state management
+        testRuns={testHistory}
         onStartTesting={handleStartTesting}
-        onClearHistory={() => console.log('Clear history')}
+        onClearHistory={handleClearHistory}
+        isLoading={isHistoryLoading}
       />
       
       {/* Modal Components */}
+      <TestFlowModal 
+        isOpen={isTestFlowOpen}
+        onClose={handleCloseTestFlow}
+      />
       <HelpModal />
       <PrivacyModal />
       <TermsModal />

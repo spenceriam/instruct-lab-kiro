@@ -2,7 +2,9 @@
 
 import { create } from 'zustand'
 import { subscribeWithSelector } from 'zustand/middleware'
-import { sessionStorageMiddleware, sessionStorageUtils, setupSessionCleanup } from './sessionStorage'
+import { setupSessionCleanup } from './sessionStorage'
+import { SecurityManager } from './security'
+import { SessionManager } from './sessionManager'
 import { 
   AppState, 
   AppActions, 
@@ -10,8 +12,18 @@ import {
   UserSettings, 
   Model, 
   TestRun, 
-  SuccessMetrics 
+  SuccessMetrics,
+  SessionData
 } from './types'
+import { EvaluationEngine, TestParams } from '../services'
+import { openRouterService } from '../services/openRouterService'
+import { 
+  ErrorRecoveryManager, 
+  AppError, 
+  ErrorClassifier,
+  GlobalErrorHandler
+} from './errorHandling'
+import { performanceMonitor } from './performanceMonitor'
 
 // Default user settings
 const defaultSettings: UserSettings = {
@@ -30,6 +42,9 @@ const defaultTestState: TestState = {
   prompt: '',
   response: null,
   results: null,
+  tokenUsage: null,
+  executionTime: null,
+  cost: null,
   error: null
 }
 
@@ -50,40 +65,111 @@ const defaultState: AppState = {
 // Create the store with session persistence
 export const useAppStore = create<AppState & AppActions>()(
   subscribeWithSelector(
-    sessionStorageMiddleware(
-      (set, get) => ({
+    (set, get) => ({
         // Initial state
         ...defaultState,
 
         // Session management actions
         initializeSession: async () => {
-          const sessionId = crypto.randomUUID()
-          set({ sessionId })
-          
-          // Set up cleanup handlers
-          if (typeof window !== 'undefined') {
-            setupSessionCleanup()
+          try {
+            // Initialize SecurityManager and SessionManager
+            if (!SecurityManager.isWebCryptoAvailable()) {
+              throw new Error('Web Crypto API is not available in this browser')
+            }
+
+            SessionManager.initialize()
+
+            // Try to load existing session
+            const existingSession = await SessionManager.loadSession()
+            
+            if (existingSession) {
+              // Load session data into store
+              const apiKey = await SessionManager.getApiKey(existingSession)
+              
+              set({
+                sessionId: existingSession.sessionId,
+                apiKey,
+                isApiKeyValid: !!apiKey && SecurityManager.validateApiKeyFormat(apiKey),
+                testHistory: existingSession.testHistory,
+                currentTest: existingSession.currentTest,
+                settings: existingSession.settings
+              })
+            } else {
+              // Create new session
+              const newSession = SessionManager.createSession()
+              await SessionManager.saveSession(newSession)
+              
+              set({ 
+                sessionId: newSession.sessionId,
+                currentTest: newSession.currentTest,
+                settings: newSession.settings
+              })
+            }
+
+            // Set up cleanup handlers
+            if (typeof window !== 'undefined') {
+              setupSessionCleanup()
+              
+              // Listen for session events
+              window.addEventListener('sessionExpired', () => {
+                get().resetSession()
+              })
+              
+              window.addEventListener('sessionCleared', () => {
+                get().resetSession()
+              })
+            }
+          } catch (error) {
+            console.error('Failed to initialize session:', error)
+            set({ 
+              error: error instanceof Error ? error.message : 'Failed to initialize session',
+              sessionId: SecurityManager.generateSessionId()
+            })
           }
         },
 
         setApiKey: async (key: string) => {
+          const operationId = 'set_api_key'
           set({ isLoading: true, error: null })
           
           try {
-            // Basic API key validation (format check)
-            if (!key || key.length < 20 || !key.startsWith('sk-')) {
-              throw new Error('Invalid API key format. OpenRouter keys should start with "sk-" and be at least 20 characters.')
+            // Preserve key for recovery
+            ErrorRecoveryManager.preserveUserInput(operationId, { apiKey: key })
+            
+            // Validate API key format
+            if (!SecurityManager.validateApiKeyFormat(key)) {
+              throw new Error('Invalid API key format. Please check your OpenRouter API key.')
             }
 
-            // TODO: Validate with OpenRouter API when the service is implemented
+            // Validate with OpenRouter API
+            const isValid = await openRouterService.validateApiKey(key)
+            if (!isValid) {
+              throw new Error('Invalid API key. Please verify your OpenRouter API key.')
+            }
+
+            // Get current session
+            const currentSession = await SessionManager.loadSession()
+            if (!currentSession) {
+              throw new Error('No active session found')
+            }
+
+            // Store encrypted API key
+            await SessionManager.storeApiKey(key, currentSession)
+            
             set({ 
               apiKey: key, 
               isApiKeyValid: true,
               isLoading: false 
             })
+            
+            // Clear recovery state on success
+            ErrorRecoveryManager.clearRecoveryState(operationId)
           } catch (error) {
+            const appError = ErrorClassifier.classifyError(error)
+            ErrorRecoveryManager.updateRetryCount(operationId)
+            
             set({ 
-              error: error instanceof Error ? error.message : 'Failed to validate API key',
+              error: appError.message,
               isLoading: false,
               apiKey: null,
               isApiKeyValid: false
@@ -91,21 +177,54 @@ export const useAppStore = create<AppState & AppActions>()(
           }
         },
 
-        clearApiKey: () => {
-          set({ 
-            apiKey: null, 
-            isApiKeyValid: false,
-            availableModels: [],
-            modelsLastFetched: null
-          })
+        clearApiKey: async () => {
+          try {
+            const currentSession = await SessionManager.loadSession()
+            if (currentSession) {
+              // Remove API key from session
+              const updatedSession: SessionData = {
+                ...currentSession,
+                encryptedApiKey: undefined
+              }
+              await SessionManager.saveSession(updatedSession)
+            }
+
+            set({ 
+              apiKey: null, 
+              isApiKeyValid: false,
+              availableModels: [],
+              modelsLastFetched: null
+            })
+          } catch (error) {
+            console.error('Failed to clear API key:', error)
+            set({ 
+              apiKey: null, 
+              isApiKeyValid: false,
+              availableModels: [],
+              modelsLastFetched: null
+            })
+          }
         },
 
-        resetSession: () => {
-          sessionStorageUtils.clearSession()
-          set({
-            ...defaultState,
-            sessionId: crypto.randomUUID()
-          })
+        resetSession: async () => {
+          try {
+            await SessionManager.clearSession()
+            const newSession = SessionManager.createSession()
+            await SessionManager.saveSession(newSession)
+            
+            set({
+              ...defaultState,
+              sessionId: newSession.sessionId,
+              currentTest: newSession.currentTest,
+              settings: newSession.settings
+            })
+          } catch (error) {
+            console.error('Failed to reset session:', error)
+            set({
+              ...defaultState,
+              sessionId: SecurityManager.generateSessionId()
+            })
+          }
         },
 
         // Test flow management actions
@@ -162,62 +281,91 @@ export const useAppStore = create<AppState & AppActions>()(
         },
 
         runEvaluation: async () => {
-          const { currentTest, apiKey } = get()
+          const { currentTest, apiKey, settings } = get()
+          const operationId = 'run_evaluation'
           
           if (!apiKey || !currentTest.model || !currentTest.instructions || !currentTest.prompt) {
             set({ error: 'Missing required data for evaluation' })
             return
           }
 
+          // Preserve evaluation data for recovery
+          ErrorRecoveryManager.preserveUserInput(operationId, {
+            model: currentTest.model,
+            instructions: currentTest.instructions,
+            prompt: currentTest.prompt,
+            settings,
+            timestamp: Date.now()
+          })
+
           set({
             currentTest: {
               ...currentTest,
-              status: 'testing'
+              status: 'testing',
+              error: null
             },
             isLoading: true,
             error: null
           })
 
           try {
-            // TODO: Implement actual API calls when OpenRouter service is ready
-            
-            // Simulate API call delay
-            await new Promise(resolve => setTimeout(resolve, 2000))
-            
-            // Mock evaluation results for now
-            const mockResults: SuccessMetrics = {
-              overallScore: Math.floor(Math.random() * 40) + 60, // 60-100
-              coherenceScore: Math.floor(Math.random() * 40) + 60,
-              taskCompletionScore: Math.floor(Math.random() * 40) + 60,
-              instructionAdherenceScore: Math.floor(Math.random() * 40) + 60,
-              efficiencyScore: Math.floor(Math.random() * 40) + 60,
-              explanation: 'Mock evaluation results for development purposes.'
+            // Update status to evaluating when starting the evaluation phase
+            set({
+              currentTest: {
+                ...currentTest,
+                status: 'evaluating'
+              }
+            })
+
+            // Prepare test parameters
+            const testParams: TestParams = {
+              apiKey,
+              model: currentTest.model,
+              systemInstructions: currentTest.instructions,
+              userPrompt: currentTest.prompt,
+              temperature: settings.temperature,
+              maxTokens: settings.maxTokens
             }
 
-            const mockResponse = `This is a mock response generated for testing purposes. The system instructions were: "${currentTest.instructions.substring(0, 50)}..."`
+            // Execute the dual-model evaluation
+            const result = await EvaluationEngine.executeEvaluation(testParams)
 
-            get().completeTest(mockResults, mockResponse)
+            // Complete the test with results
+            get().completeTest(result.metrics, result.response, result.tokenUsage, result.executionTime, result.cost)
+            
+            // Clear recovery state on success
+            ErrorRecoveryManager.clearRecoveryState(operationId)
           } catch (error) {
+            console.error('Evaluation failed:', error)
+            
+            const appError = error as AppError
+            ErrorRecoveryManager.updateRetryCount(operationId)
+            
             set({
               currentTest: {
                 ...currentTest,
                 status: 'error',
-                error: error instanceof Error ? error.message : 'Evaluation failed'
+                error: appError.message
               },
-              isLoading: false
+              isLoading: false,
+              error: appError.message
             })
           }
         },
 
-        completeTest: (results: SuccessMetrics, response: string) => {
+        completeTest: async (results: SuccessMetrics, response: string, tokenUsage?: import('./types').TokenStats, executionTime?: number, cost?: number) => {
           const { currentTest, settings } = get()
           
           set({
             currentTest: {
               ...currentTest,
               status: 'complete',
+              currentStep: 3, // Automatically advance to results step
               results,
-              response
+              response,
+              tokenUsage: tokenUsage || null,
+              executionTime: executionTime || null,
+              cost: cost || null
             },
             isLoading: false
           })
@@ -233,17 +381,16 @@ export const useAppStore = create<AppState & AppActions>()(
               prompt: currentTest.prompt,
               response,
               metrics: results,
-              tokenUsage: {
-                promptTokens: Math.floor(Math.random() * 500) + 100,
-                completionTokens: Math.floor(Math.random() * 300) + 50,
+              tokenUsage: tokenUsage || {
+                promptTokens: 0,
+                completionTokens: 0,
                 totalTokens: 0
               },
-              executionTime: Math.floor(Math.random() * 3000) + 1000,
-              cost: Math.random() * 0.01 + 0.001
+              executionTime: executionTime || 0,
+              cost: cost || 0
             }
-            testRun.tokenUsage.totalTokens = testRun.tokenUsage.promptTokens + testRun.tokenUsage.completionTokens
 
-            get().addToHistory(testRun)
+            await get().addToHistory(testRun)
           }
         },
 
@@ -254,87 +401,133 @@ export const useAppStore = create<AppState & AppActions>()(
         },
 
         // History management actions
-        addToHistory: (testRun: TestRun) => {
-          const { testHistory } = get()
-          set({
-            testHistory: [testRun, ...testHistory]
-          })
+        addToHistory: async (testRun: TestRun) => {
+          try {
+            const currentSession = await SessionManager.loadSession()
+            if (currentSession) {
+              const updatedSession = await SessionManager.addTestToHistory(testRun, currentSession)
+              set({
+                testHistory: updatedSession.testHistory
+              })
+            } else {
+              // Fallback to local state only
+              const { testHistory } = get()
+              set({
+                testHistory: [testRun, ...testHistory]
+              })
+            }
+          } catch (error) {
+            console.error('Failed to add test to history:', error)
+            // Fallback to local state only
+            const { testHistory } = get()
+            set({
+              testHistory: [testRun, ...testHistory]
+            })
+          }
         },
 
-        clearHistory: () => {
-          set({
-            testHistory: []
-          })
+        clearHistory: async () => {
+          try {
+            const currentSession = await SessionManager.loadSession()
+            if (currentSession) {
+              const updatedSession = await SessionManager.clearTestHistory(currentSession)
+              set({
+                testHistory: updatedSession.testHistory
+              })
+            } else {
+              set({
+                testHistory: []
+              })
+            }
+          } catch (error) {
+            console.error('Failed to clear history:', error)
+            set({
+              testHistory: []
+            })
+          }
         },
 
         // Settings management actions
-        updateSettings: (newSettings: Partial<UserSettings>) => {
-          const { settings } = get()
-          set({
-            settings: {
-              ...settings,
-              ...newSettings
+        updateSettings: async (newSettings: Partial<UserSettings>) => {
+          try {
+            const currentSession = await SessionManager.loadSession()
+            if (currentSession) {
+              const updatedSession = await SessionManager.updateSettings(newSettings, currentSession)
+              set({
+                settings: updatedSession.settings
+              })
+            } else {
+              // Fallback to local state only
+              const { settings } = get()
+              set({
+                settings: {
+                  ...settings,
+                  ...newSettings
+                }
+              })
             }
-          })
+          } catch (error) {
+            console.error('Failed to update settings:', error)
+            // Fallback to local state only
+            const { settings } = get()
+            set({
+              settings: {
+                ...settings,
+                ...newSettings
+              }
+            })
+          }
         },
 
         // Models management actions
         fetchModels: async () => {
-          const { modelsLastFetched } = get()
+          const { modelsLastFetched, apiKey } = get()
+          const operationId = 'fetch_models'
           
-          // Only fetch if we haven't fetched in the last hour
+          // Check cache first and record cache event
           if (modelsLastFetched && Date.now() - modelsLastFetched < 60 * 60 * 1000) {
+            performanceMonitor.recordCacheEvent('models_fetch', true)
             return
           }
 
-          set({ isLoading: true })
+          if (!apiKey) {
+            set({ error: 'API key required to fetch models' })
+            return
+          }
+
+          set({ isLoading: true, error: null })
 
           try {
-            // TODO: Implement actual OpenRouter API call
-            // For now, use mock data
-            const mockModels: Model[] = [
-              {
-                id: 'gpt-4',
-                name: 'GPT-4',
-                provider: 'OpenAI',
-                contextLength: 8192,
-                pricing: { prompt: 0.03, completion: 0.06 },
-                description: 'Most capable GPT-4 model'
-              },
-              {
-                id: 'gpt-3.5-turbo',
-                name: 'GPT-3.5 Turbo',
-                provider: 'OpenAI',
-                contextLength: 4096,
-                pricing: { prompt: 0.002, completion: 0.002 },
-                description: 'Fast and efficient model for most tasks'
-              },
-              {
-                id: 'claude-3-opus',
-                name: 'Claude 3 Opus',
-                provider: 'Anthropic',
-                contextLength: 200000,
-                pricing: { prompt: 0.015, completion: 0.075 },
-                description: 'Most powerful Claude model'
-              },
-              {
-                id: 'claude-3-haiku',
-                name: 'Claude 3 Haiku',
-                provider: 'Anthropic',
-                contextLength: 200000,
-                pricing: { prompt: 0.00025, completion: 0.00125 },
-                description: 'Fastest Claude model'
-              }
-            ]
+            // Preserve context for recovery
+            ErrorRecoveryManager.preserveUserInput(operationId, { 
+              apiKey,
+              timestamp: Date.now()
+            })
+
+            // Time the API call
+            const models = await performanceMonitor.timeAsync('fetch_models_api', async () => {
+              return await openRouterService.fetchModels(apiKey)
+            })
+
+            performanceMonitor.recordCacheEvent('models_fetch', false)
+            performanceMonitor.recordApiCall('models', Date.now() - (get().modelsLastFetched || 0), true)
 
             set({
-              availableModels: mockModels,
+              availableModels: models,
               modelsLastFetched: Date.now(),
               isLoading: false
             })
+            
+            // Clear recovery state on success
+            ErrorRecoveryManager.clearRecoveryState(operationId)
           } catch (error) {
+            const appError = ErrorClassifier.classifyError(error)
+            ErrorRecoveryManager.updateRetryCount(operationId)
+            
+            performanceMonitor.recordApiCall('models', Date.now() - (get().modelsLastFetched || 0), false)
+            
             set({
-              error: error instanceof Error ? error.message : 'Failed to fetch models',
+              error: appError.message,
               isLoading: false
             })
           }
@@ -364,11 +557,7 @@ export const useAppStore = create<AppState & AppActions>()(
         setLoading: (isLoading: boolean) => {
           set({ isLoading })
         }
-      }),
-      {
-        name: 'instruct-lab-session'
-      }
-    )
+      })
   )
 )
 
@@ -421,7 +610,14 @@ export const useModelsActions = () => useAppStore((state) => ({
   searchModels: state.searchModels
 }))
 
-// Initialize session on store creation (client-side only)
+// Initialize session and error handling on store creation (client-side only)
 if (typeof window !== 'undefined') {
+  // Initialize global error handler
+  GlobalErrorHandler.addErrorListener((error: AppError) => {
+    const store = useAppStore.getState()
+    store.setError(error.message)
+  })
+  
+  // Initialize session
   useAppStore.getState().initializeSession()
 }

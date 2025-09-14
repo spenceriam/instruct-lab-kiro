@@ -33,7 +33,9 @@ declare namespace __next_route_internal_types__ {
 
   type StaticRoutes = 
     | `/`
-  type DynamicRoutes<T extends string = string> = never
+    | `/api/health`
+  type DynamicRoutes<T extends string = string> = 
+    | `/static/${OptionalCatchAllSlug<T>}`
 
   type RouteImpl<T> = 
     | StaticRoutes

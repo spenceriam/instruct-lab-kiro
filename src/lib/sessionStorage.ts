@@ -1,6 +1,6 @@
 'use client'
 
-import { StateCreator, StoreMutatorIdentifier } from 'zustand'
+// Session storage utilities for the Instruct-Lab application
 import { SessionData } from './types'
 
 // Session storage key
@@ -9,18 +9,8 @@ const STORAGE_KEY = 'instruct-lab-session'
 // Session TTL (1 hour)
 const SESSION_TTL = 60 * 60 * 1000
 
-type SessionStorageMiddleware = <
-  T,
-  Mps extends [StoreMutatorIdentifier, unknown][] = [],
-  Mcs extends [StoreMutatorIdentifier, unknown][] = []
->(
-  initializer: StateCreator<T, [...Mps, ['session-storage', unknown]], Mcs>,
-  options?: {
-    name?: string
-    serialize?: (state: T) => string
-    deserialize?: (str: string) => T
-  }
-) => StateCreator<T, Mps, [['session-storage', unknown], ...Mcs]>
+// Note: Session storage middleware was removed in favor of direct session management
+// through SecurityManager and SessionManager services
 
 // Encryption utilities using Web Crypto API
 class SessionEncryption {
@@ -124,11 +114,11 @@ class SessionEncryption {
 
 // Session storage utilities
 export const sessionStorageUtils = {
-  async saveSession<T>(data: T, key: string = STORAGE_KEY): Promise<void> {
+  async saveSession<T = unknown>(data: T, key: string = STORAGE_KEY): Promise<void> {
     try {
       const sessionData: SessionData = {
-        ...(data as any),
-        sessionId: (data as any).sessionId || crypto.randomUUID(),
+        ...(data as SessionData),
+        sessionId: (data as SessionData).sessionId || crypto.randomUUID(),
         createdAt: Date.now(),
         expiresAt: Date.now() + SESSION_TTL
       }
@@ -141,7 +131,7 @@ export const sessionStorageUtils = {
     }
   },
 
-  async loadSession<T>(key: string = STORAGE_KEY): Promise<Partial<T> | null> {
+  async loadSession<T = unknown>(key: string = STORAGE_KEY): Promise<Partial<T> | null> {
     try {
       const encrypted = sessionStorage.getItem(key)
       if (!encrypted) return null
@@ -156,7 +146,7 @@ export const sessionStorageUtils = {
         return null
       }
 
-      return sessionData as any
+      return sessionData as unknown as Partial<T>
     } catch (error) {
       console.error('Failed to load session:', error)
       return null
@@ -182,41 +172,7 @@ export const sessionStorageUtils = {
   }
 }
 
-// Session storage middleware implementation
-const sessionStorageMiddleware: SessionStorageMiddleware =
-  (initializer, options) => (set, get, store) => {
-    const name = options?.name || STORAGE_KEY
-    const serialize = options?.serialize || JSON.stringify
-    const deserialize = options?.deserialize || JSON.parse
 
-    // Load initial state from session storage
-    const loadState = async () => {
-      const stored = await sessionStorageUtils.loadSession(name)
-      if (stored) {
-        set(stored as any, false, 'session-storage-hydrate')
-      }
-    }
-
-    // Save state to session storage
-    const saveState = async (state: any) => {
-      await sessionStorageUtils.saveSession(state, name)
-    }
-
-    // Load state on initialization
-    loadState()
-
-    // Create enhanced set function that persists to session storage
-    const persistentSet: typeof set = (partial, replace, action) => {
-      const result = set(partial, replace, action)
-      const state = get()
-      saveState(state)
-      return result
-    }
-
-    return initializer(persistentSet, get, store)
-  }
-
-export { sessionStorageMiddleware }
 
 // Cleanup function for when the page is about to unload
 export const setupSessionCleanup = () => {

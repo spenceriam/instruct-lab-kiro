@@ -6,9 +6,16 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:analyze": "ANALYZE=true next build",
     "start": "next start",
     "lint": "next lint",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "deploy:check": "./scripts/deploy.sh",
+    "deploy:preview": "vercel",
+    "deploy:prod": "vercel --prod",
+    "postbuild": "echo 'Build completed successfully!'"
   },
   "dependencies": {
     "@types/node": "^24.3.1",
@@ -26,11 +33,17 @@
     "zustand": "^5.0.8"
   },
   "devDependencies": {
+    "@next/bundle-analyzer": "^15.5.3",
+    "@testing-library/jest-dom": "^6.8.0",
+    "@testing-library/react": "^16.3.0",
+    "@vitest/ui": "^3.2.4",
     "autoprefixer": "^10.4.21",
     "eslint": "^9.35.0",
     "eslint-config-next": "^15.5.3",
+    "jsdom": "^27.0.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwindcss-animate": "^1.0.7",
+    "vitest": "^3.2.4"
   }
 }

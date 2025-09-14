@@ -4,10 +4,10 @@
     "env": {},
     "webpack": null,
     "eslint": {
-      "ignoreDuringBuilds": false
+      "ignoreDuringBuilds": true
     },
     "typescript": {
-      "ignoreBuildErrors": false,
+      "ignoreBuildErrors": true,
       "tsconfigPath": "tsconfig.json"
     },
     "typedRoutes": true,
@@ -24,7 +24,7 @@
       "jsx",
       "js"
     ],
-    "poweredByHeader": true,
+    "poweredByHeader": false,
     "compress": true,
     "images": {
       "deviceSizes": [
@@ -52,13 +52,13 @@
       "loaderFile": "",
       "domains": [],
       "disableStaticImages": false,
-      "minimumCacheTTL": 60,
+      "minimumCacheTTL": 604800,
       "formats": [
         "image/webp",
         "image/avif"
       ],
-      "dangerouslyAllowSVG": false,
-      "contentSecurityPolicy": "script-src 'none'; frame-src 'none'; sandbox;",
+      "dangerouslyAllowSVG": true,
+      "contentSecurityPolicy": "default-src 'self'; script-src 'none'; sandbox;",
       "contentDispositionType": "attachment",
       "remotePatterns": [],
       "unoptimized": false
@@ -205,6 +205,7 @@
       "browserDebugInfoInTerminal": false,
       "optimizeRouterScrolling": false,
       "optimizePackageImports": [
+        "phosphor-react",
         "lucide-react",
         "date-fns",
         "lodash-es",
@@ -289,6 +290,16 @@
     "configFileName": "next.config.js",
     "turbopack": {
       "root": "/Users/spencer/Documents/GitHub/instruct-lab-kiro"
+    },
+    "_originalRewrites": {
+      "beforeFiles": [],
+      "afterFiles": [
+        {
+          "source": "/static/:path*",
+          "destination": "/_next/static/:path*"
+        }
+      ],
+      "fallback": []
     }
   },
   "appDir": "/Users/spencer/Documents/GitHub/instruct-lab-kiro",

@@ -49,6 +49,9 @@ export interface TestState {
   prompt: string
   response: string | null
   results: SuccessMetrics | null
+  tokenUsage: TokenStats | null
+  executionTime: number | null
+  cost: number | null
   error: string | null
 }
 
@@ -99,8 +102,8 @@ export interface AppActions {
   // Session management
   initializeSession: () => Promise<void>
   setApiKey: (key: string) => Promise<void>
-  clearApiKey: () => void
-  resetSession: () => void
+  clearApiKey: () => Promise<void>
+  resetSession: () => Promise<void>
   
   // Test flow management
   startTest: () => void
@@ -109,15 +112,15 @@ export interface AppActions {
   setInstructions: (instructions: string) => void
   setPrompt: (prompt: string) => void
   runEvaluation: () => Promise<void>
-  completeTest: (results: SuccessMetrics, response: string) => void
+  completeTest: (results: SuccessMetrics, response: string, tokenUsage?: TokenStats, executionTime?: number, cost?: number) => Promise<void>
   resetCurrentTest: () => void
   
   // History management
-  addToHistory: (testRun: TestRun) => void
-  clearHistory: () => void
+  addToHistory: (testRun: TestRun) => Promise<void>
+  clearHistory: () => Promise<void>
   
   // Settings management
-  updateSettings: (settings: Partial<UserSettings>) => void
+  updateSettings: (settings: Partial<UserSettings>) => Promise<void>
   
   // Models management
   fetchModels: () => Promise<void>
