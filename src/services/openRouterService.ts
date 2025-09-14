@@ -320,8 +320,8 @@ export class OpenRouterService {
           provider: this.extractProvider(model.id),
           contextLength: Number(model.context_length || model.top_provider?.context_length || 4096) || 4096,
           pricing: {
-            prompt: parseFloat(model.pricing?.prompt) || 0,
-            completion: parseFloat(model.pricing?.completion) || 0
+            prompt: parseFloat(model.pricing?.prompt) || 0, // Already per 1K tokens from API
+            completion: parseFloat(model.pricing?.completion) || 0 // Already per 1K tokens from API
           },
           description: model.description
         }

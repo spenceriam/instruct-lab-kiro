@@ -15,8 +15,8 @@ export default function SelectedModelDisplay({ model, onChangeModel }: SelectedM
       return '$0.0000/1K tokens'
     }
     // For very small prices, show more decimal places
-    if (safePrice < 0.0001) {
-      return `$${safePrice.toExponential(2)}/1K tokens`
+    if (safePrice < 0.01) {
+      return `$${safePrice.toFixed(6)}/1K tokens`
     }
     // For normal prices, show 4 decimal places
     return `$${safePrice.toFixed(4)}/1K tokens`
