@@ -80,17 +80,20 @@ export default function ModelSearch({ onClose, isEvaluationModel = false }: Mode
 
   // Removed keyboard navigation to prevent interference with typing
 
-  const formatPrice = (price: number) => {
+  const formatPrice = (price: number, type: 'input' | 'output') => {
     const safePrice = price || 0
     if (safePrice === 0) {
-      return '$0.0000/1K tokens'
+      return `$0/M ${type} tokens`
     }
-    // For very small prices, show more decimal places
-    if (safePrice < 0.01) {
-      return `$${safePrice.toFixed(6)}/1K tokens`
+    
+    // The API returns prices per token, so multiply by 1,000,000 to get per million tokens
+    const pricePerMillion = safePrice * 1000000
+    
+    // Format with appropriate decimal places
+    if (pricePerMillion < 1) {
+      return `$${pricePerMillion.toFixed(3)}/M ${type} tokens`
     }
-    // For normal prices, show 4 decimal places
-    return `$${safePrice.toFixed(4)}/1K tokens`
+    return `$${pricePerMillion.toFixed(2)}/M ${type} tokens`
   }
 
   const getProviderColor = (provider: string) => {
@@ -135,7 +138,6 @@ export default function ModelSearch({ onClose, isEvaluationModel = false }: Mode
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-
             placeholder="Search models by name, provider, or description..."
             className="w-full pl-10 pr-4 py-2 border border-input rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus-visible-enhanced"
             aria-describedby={statusId}
@@ -207,11 +209,11 @@ export default function ModelSearch({ onClose, isEvaluationModel = false }: Mode
                       <span aria-label={`Context length: ${(model.contextLength || 0).toLocaleString()} tokens`}>
                         Context: {(model.contextLength || 0).toLocaleString()} tokens
                       </span>
-                      <span aria-label={`Input price: ${formatPrice(model.pricing?.prompt || 0)}`}>
-                        Input: {formatPrice(model.pricing?.prompt || 0)}
+                      <span aria-label={`Input price: ${formatPrice(model.pricing?.prompt || 0, 'input')}`}>
+                        Input: {formatPrice(model.pricing?.prompt || 0, 'input')}
                       </span>
-                      <span aria-label={`Output price: ${formatPrice(model.pricing?.completion || 0)}`}>
-                        Output: {formatPrice(model.pricing?.completion || 0)}
+                      <span aria-label={`Output price: ${formatPrice(model.pricing?.completion || 0, 'output')}`}>
+                        Output: {formatPrice(model.pricing?.completion || 0, 'output')}
                       </span>
                     </div>
                   </div>

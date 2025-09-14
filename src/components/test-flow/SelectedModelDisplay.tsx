@@ -9,17 +9,20 @@ interface SelectedModelDisplayProps {
 }
 
 export default function SelectedModelDisplay({ model, onChangeModel }: SelectedModelDisplayProps) {
-  const formatPrice = (price: number) => {
+  const formatPrice = (price: number, type: 'input' | 'output') => {
     const safePrice = price || 0
     if (safePrice === 0) {
-      return '$0.0000/1K tokens'
+      return `$0/M ${type} tokens`
     }
-    // For very small prices, show more decimal places
-    if (safePrice < 0.01) {
-      return `$${safePrice.toFixed(6)}/1K tokens`
+    
+    // The API returns prices per token, so multiply by 1,000,000 to get per million tokens
+    const pricePerMillion = safePrice * 1000000
+    
+    // Format with appropriate decimal places
+    if (pricePerMillion < 1) {
+      return `$${pricePerMillion.toFixed(3)}/M ${type} tokens`
     }
-    // For normal prices, show 4 decimal places
-    return `$${safePrice.toFixed(4)}/1K tokens`
+    return `$${pricePerMillion.toFixed(2)}/M ${type} tokens`
   }
 
   const getProviderColor = (provider: string) => {
@@ -75,14 +78,14 @@ export default function SelectedModelDisplay({ model, onChangeModel }: SelectedM
         <div className="text-center">
           <div className="text-xs text-muted-foreground mb-1">Input Price</div>
           <div className="text-sm font-medium text-foreground">
-            {formatPrice(model.pricing?.prompt || 0)}
+            {formatPrice(model.pricing?.prompt || 0, 'input')}
           </div>
         </div>
         
         <div className="text-center">
           <div className="text-xs text-muted-foreground mb-1">Output Price</div>
           <div className="text-sm font-medium text-foreground">
-            {formatPrice(model.pricing?.completion || 0)}
+            {formatPrice(model.pricing?.completion || 0, 'output')}
           </div>
         </div>
       </div>
