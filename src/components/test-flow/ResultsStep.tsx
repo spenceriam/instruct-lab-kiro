@@ -175,11 +175,235 @@ function StatCard({ icon, label, value, suffix = '', decimals = 0 }: StatCardPro
   )
 }
 
+interface HistoryTestCardProps {
+  test: TestRun
+  testNumber: number
+}
+
+function HistoryTestCard({ test, testNumber }: HistoryTestCardProps) {
+  const [isExpanded, setIsExpanded] = useState(false)
+
+  const getScoreColor = (score: number) => {
+    if (score >= 80) return 'text-green-600'
+    if (score >= 60) return 'text-yellow-600'
+    return 'text-red-600'
+  }
+
+  const getScoreBgColor = (score: number) => {
+    if (score >= 80) return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+    if (score >= 60) return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+    return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+  }
+
+  return (
+    <div className="bg-background rounded border">
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full p-3 text-left hover:bg-muted/30 transition-colors"
+      >
+        {/* Header Row */}
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-muted-foreground">
+              #{testNumber}
+            </span>
+            <span className="text-sm font-medium text-foreground">
+              {test.model}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {new Date(test.timestamp).toLocaleDateString()} {new Date(test.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            {isExpanded ? (
+              <CaretDown size={14} className="text-muted-foreground" />
+            ) : (
+              <CaretRight size={14} className="text-muted-foreground" />
+            )}
+          </div>
+        </div>
+
+        {/* Metrics Row */}
+        <div className="grid grid-cols-5 gap-2 mb-2">
+          <div className="text-center">
+            <div className="text-xs text-muted-foreground">Overall</div>
+            <div className={`text-sm font-medium ${getScoreColor(test.metrics.overallScore)}`}>
+              {test.metrics.overallScore}%
+            </div>
+          </div>
+          <div className="text-center">
+            <div className="text-xs text-muted-foreground">Coherence</div>
+            <div className={`text-sm font-medium ${getScoreColor(test.metrics.coherenceScore)}`}>
+              {test.metrics.coherenceScore}%
+            </div>
+          </div>
+          <div className="text-center">
+            <div className="text-xs text-muted-foreground">Task</div>
+            <div className={`text-sm font-medium ${getScoreColor(test.metrics.taskCompletionScore)}`}>
+              {test.metrics.taskCompletionScore}%
+            </div>
+          </div>
+          <div className="text-center">
+            <div className="text-xs text-muted-foreground">Adherence</div>
+            <div className={`text-sm font-medium ${getScoreColor(test.metrics.instructionAdherenceScore)}`}>
+              {test.metrics.instructionAdherenceScore}%
+            </div>
+          </div>
+          <div className="text-center">
+            <div className="text-xs text-muted-foreground">Efficiency</div>
+            <div className={`text-sm font-medium ${getScoreColor(test.metrics.efficiencyScore)}`}>
+              {test.metrics.efficiencyScore}%
+            </div>
+          </div>
+        </div>
+
+        {/* Performance Row */}
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-muted-foreground truncate flex-1 mr-4">
+            {test.prompt}
+          </p>
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <span>{(test.executionTime / 1000).toFixed(1)}s</span>
+            <span>${test.cost.toFixed(4)}</span>
+            <span>{test.tokenUsage.totalTokens} tokens</span>
+          </div>
+        </div>
+      </button>
+
+      {/* Expanded Details */}
+      {isExpanded && (
+        <div className="border-t border-border p-4 space-y-4">
+          {/* Detailed Metrics */}
+          <div>
+            <h5 className="text-sm font-medium text-foreground mb-3">Detailed Scores</h5>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground">Coherence</span>
+                  <span className={`text-xs font-medium px-2 py-1 rounded ${getScoreBgColor(test.metrics.coherenceScore)}`}>
+                    {test.metrics.coherenceScore}%
+                  </span>
+                </div>
+                <div className="w-full bg-muted rounded-full h-1.5">
+                  <div
+                    className="h-1.5 rounded-full bg-blue-500"
+                    style={{ width: `${test.metrics.coherenceScore}%` }}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground">Task Completion</span>
+                  <span className={`text-xs font-medium px-2 py-1 rounded ${getScoreBgColor(test.metrics.taskCompletionScore)}`}>
+                    {test.metrics.taskCompletionScore}%
+                  </span>
+                </div>
+                <div className="w-full bg-muted rounded-full h-1.5">
+                  <div
+                    className="h-1.5 rounded-full bg-green-500"
+                    style={{ width: `${test.metrics.taskCompletionScore}%` }}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground">Instruction Adherence</span>
+                  <span className={`text-xs font-medium px-2 py-1 rounded ${getScoreBgColor(test.metrics.instructionAdherenceScore)}`}>
+                    {test.metrics.instructionAdherenceScore}%
+                  </span>
+                </div>
+                <div className="w-full bg-muted rounded-full h-1.5">
+                  <div
+                    className="h-1.5 rounded-full bg-purple-500"
+                    style={{ width: `${test.metrics.instructionAdherenceScore}%` }}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground">Efficiency</span>
+                  <span className={`text-xs font-medium px-2 py-1 rounded ${getScoreBgColor(test.metrics.efficiencyScore)}`}>
+                    {test.metrics.efficiencyScore}%
+                  </span>
+                </div>
+                <div className="w-full bg-muted rounded-full h-1.5">
+                  <div
+                    className="h-1.5 rounded-full bg-orange-500"
+                    style={{ width: `${test.metrics.efficiencyScore}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Test Prompt */}
+          <div>
+            <h5 className="text-sm font-medium text-foreground mb-2">Test Prompt</h5>
+            <div className="bg-muted/30 rounded p-3 max-h-20 overflow-y-auto">
+              <p className="text-xs text-foreground font-mono whitespace-pre-wrap">
+                {test.prompt}
+              </p>
+            </div>
+          </div>
+
+          {/* Model Response */}
+          <div>
+            <h5 className="text-sm font-medium text-foreground mb-2">Model Response</h5>
+            <div className="bg-muted/30 rounded p-3 max-h-24 overflow-y-auto">
+              <p className="text-xs text-foreground font-mono whitespace-pre-wrap">
+                {test.response}
+              </p>
+            </div>
+          </div>
+
+          {/* Evaluation Analysis */}
+          {test.metrics.explanation && (
+            <div>
+              <h5 className="text-sm font-medium text-foreground mb-2">AI Evaluation Analysis</h5>
+              <div className="bg-blue-50 dark:bg-blue-950/20 rounded p-3 border border-blue-200 dark:border-blue-800">
+                <p className="text-xs text-blue-800 dark:text-blue-200 leading-relaxed">
+                  {test.metrics.explanation}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Performance Metrics */}
+          <div>
+            <h5 className="text-sm font-medium text-foreground mb-2">Performance</h5>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="text-center bg-muted/30 rounded p-2">
+                <div className="text-xs text-muted-foreground">Execution Time</div>
+                <div className="text-sm font-medium text-foreground">
+                  {(test.executionTime / 1000).toFixed(1)}s
+                </div>
+              </div>
+              <div className="text-center bg-muted/30 rounded p-2">
+                <div className="text-xs text-muted-foreground">Cost</div>
+                <div className="text-sm font-medium text-foreground">
+                  ${test.cost.toFixed(4)}
+                </div>
+              </div>
+              <div className="text-center bg-muted/30 rounded p-2">
+                <div className="text-xs text-muted-foreground">Tokens</div>
+                <div className="text-sm font-medium text-foreground">
+                  {test.tokenUsage.totalTokens}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function ResultsStep() {
-  const { currentTest, setCurrentStep, resetCurrentTest } = useAppStore()
+  const { currentTest, testHistory, setCurrentStep, resetCurrentTest } = useAppStore()
   const { results, response, model, tokenUsage, executionTime, cost } = currentTest
   const [showExportModal, setShowExportModal] = useState(false)
   const [showInstructions, setShowInstructions] = useState(false)
+  const [showHistory, setShowHistory] = useState(false)
 
   if (!results || !response || !model) {
     return (
@@ -430,6 +654,47 @@ Performance Metrics:
           New Test
         </button>
       </div>
+
+      {/* Test History (collapsible) */}
+      {testHistory.length > 0 && (
+        <div className="bg-muted/50 rounded-lg p-4">
+          <button
+            onClick={() => setShowHistory(!showHistory)}
+            className="flex items-center justify-between w-full text-left"
+          >
+            <h4 className="font-medium text-foreground">
+              Previous Tests ({testHistory.length})
+            </h4>
+            {showHistory ? (
+              <CaretDown size={16} className="text-muted-foreground" />
+            ) : (
+              <CaretRight size={16} className="text-muted-foreground" />
+            )}
+          </button>
+          {showHistory && (
+            <div className="mt-4 space-y-3 max-h-96 overflow-y-auto">
+              {testHistory
+                .slice()
+                .reverse() // Show most recent first
+                .slice(0, 5) // Limit to last 5 tests
+                .map((test, index) => (
+                  <HistoryTestCard 
+                    key={test.id} 
+                    test={test} 
+                    testNumber={testHistory.length - index}
+                  />
+                ))}
+              {testHistory.length > 5 && (
+                <div className="text-center pt-2">
+                  <span className="text-xs text-muted-foreground">
+                    Showing last 5 of {testHistory.length} tests
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Export Modal */}
       {currentTestRun && (

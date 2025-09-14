@@ -300,17 +300,32 @@ export class OpenRouterService {
   private transformModels(openRouterModels: OpenRouterModel[]): Model[] {
     return openRouterModels
       .filter(model => model.id && model.name) // Filter out invalid models
-      .map(model => ({
-        id: model.id,
-        name: model.name,
-        provider: this.extractProvider(model.id),
-        contextLength: Number(model.context_length || model.top_provider?.context_length || 4096) || 4096,
-        pricing: {
-          prompt: parseFloat(model.pricing?.prompt) || 0,
-          completion: parseFloat(model.pricing?.completion) || 0
-        },
-        description: model.description
-      }))
+      .map(model => {
+        // Debug pricing for Kimi models
+        if (model.name.toLowerCase().includes('kimi')) {
+          console.log('Kimi model pricing debug:', {
+            name: model.name,
+            id: model.id,
+            rawPricing: model.pricing,
+            promptPrice: model.pricing?.prompt,
+            completionPrice: model.pricing?.completion,
+            parsedPrompt: parseFloat(model.pricing?.prompt),
+            parsedCompletion: parseFloat(model.pricing?.completion)
+          })
+        }
+        
+        return {
+          id: model.id,
+          name: model.name,
+          provider: this.extractProvider(model.id),
+          contextLength: Number(model.context_length || model.top_provider?.context_length || 4096) || 4096,
+          pricing: {
+            prompt: parseFloat(model.pricing?.prompt) || 0,
+            completion: parseFloat(model.pricing?.completion) || 0
+          },
+          description: model.description
+        }
+      })
       .sort((a, b) => a.name.localeCompare(b.name)) // Sort alphabetically
   }
 

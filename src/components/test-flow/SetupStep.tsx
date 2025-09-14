@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import ApiKeyInput from './ApiKeyInput'
 import ModelSearch from './ModelSearch'
 import SelectedModelDisplay from './SelectedModelDisplay'
@@ -11,6 +11,80 @@ export default function SetupStep() {
   const { currentTest, settings, isApiKeyValid, setCurrentStep } = useAppStore()
   const [showModelSearch, setShowModelSearch] = useState(false)
   const [showEvaluationModelSearch, setShowEvaluationModelSearch] = useState(false)
+  
+  // Refs for auto-scrolling to model search sections
+  const modelSearchRef = useRef<HTMLDivElement>(null)
+  const evaluationModelSearchRef = useRef<HTMLDivElement>(null)
+
+  // Auto-scroll to model search when it opens
+  useEffect(() => {
+    if (showModelSearch && modelSearchRef.current) {
+      setTimeout(() => {
+        const element = modelSearchRef.current
+        if (element) {
+          // Find the modal's scrollable content area
+          const modalBody = element.closest('[role="document"]') || 
+                           element.closest('.overflow-y-auto') ||
+                           element.closest('[role="dialog"]')?.querySelector('.overflow-y-auto')
+          
+          if (modalBody) {
+            // Calculate element position relative to modal body
+            const elementRect = element.getBoundingClientRect()
+            const modalRect = modalBody.getBoundingClientRect()
+            const relativeTop = elementRect.top - modalRect.top + modalBody.scrollTop
+            
+            // Scroll within the modal body
+            modalBody.scrollTo({
+              top: Math.max(0, relativeTop - 20), // 20px offset from top
+              behavior: 'smooth'
+            })
+          } else {
+            // Fallback to standard scrollIntoView
+            element.scrollIntoView({ 
+              behavior: 'smooth', 
+              block: 'start',
+              inline: 'nearest'
+            })
+          }
+        }
+      }, 200) // Longer delay to ensure rendering
+    }
+  }, [showModelSearch])
+
+  // Auto-scroll to evaluation model search when it opens
+  useEffect(() => {
+    if (showEvaluationModelSearch && evaluationModelSearchRef.current) {
+      setTimeout(() => {
+        const element = evaluationModelSearchRef.current
+        if (element) {
+          // Find the modal's scrollable content area
+          const modalBody = element.closest('[role="document"]') || 
+                           element.closest('.overflow-y-auto') ||
+                           element.closest('[role="dialog"]')?.querySelector('.overflow-y-auto')
+          
+          if (modalBody) {
+            // Calculate element position relative to modal body
+            const elementRect = element.getBoundingClientRect()
+            const modalRect = modalBody.getBoundingClientRect()
+            const relativeTop = elementRect.top - modalRect.top + modalBody.scrollTop
+            
+            // Scroll within the modal body
+            modalBody.scrollTo({
+              top: Math.max(0, relativeTop - 20), // 20px offset from top
+              behavior: 'smooth'
+            })
+          } else {
+            // Fallback to standard scrollIntoView
+            element.scrollIntoView({ 
+              behavior: 'smooth', 
+              block: 'start',
+              inline: 'nearest'
+            })
+          }
+        }
+      }, 200) // Longer delay to ensure rendering
+    }
+  }, [showEvaluationModelSearch])
 
   const canProceed = isApiKeyValid && currentTest.model?.id && settings.evaluationModel?.id
 
@@ -58,7 +132,7 @@ export default function SetupStep() {
           )}
 
           {showModelSearch && (
-            <div className="mt-3 sm:mt-4">
+            <div ref={modelSearchRef} className="mt-3 sm:mt-4">
               <ModelSearch onClose={() => setShowModelSearch(false)} />
             </div>
           )}
@@ -90,7 +164,7 @@ export default function SetupStep() {
           )}
 
           {showEvaluationModelSearch && (
-            <div className="mt-3 sm:mt-4">
+            <div ref={evaluationModelSearchRef} className="mt-3 sm:mt-4">
               <ModelSearch 
                 onClose={() => setShowEvaluationModelSearch(false)}
                 isEvaluationModel={true}

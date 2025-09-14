@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useAppStore } from '@/lib/store'
 import { validatePrompt, getInputClasses, getHelperTextClasses } from '@/lib/validation'
-import { Play, ArrowLeft } from 'phosphor-react'
+import { Play, ArrowLeft, CaretDown, CaretRight, Clock } from 'phosphor-react'
 
 interface TestStepProps {
   onNext?: () => void
@@ -21,6 +21,9 @@ export default function TestStep({ onBack }: TestStepProps) {
   } = useAppStore()
   
   const [prompt, setPromptLocal] = useState(currentTest.prompt)
+  const [showInstructions, setShowInstructions] = useState(false)
+  const [elapsedTime, setElapsedTime] = useState(0)
+  const [startTime, setStartTime] = useState<number | null>(null)
   
   // Validate prompt
   const validation = validatePrompt(prompt)
@@ -30,8 +33,36 @@ export default function TestStep({ onBack }: TestStepProps) {
     setPrompt(prompt)
   }, [prompt, setPrompt])
 
+  // Timer for elapsed time during evaluation
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null
+    
+    if (isLoading && startTime) {
+      interval = setInterval(() => {
+        setElapsedTime(Date.now() - startTime)
+      }, 100) // Update every 100ms for smooth display
+    } else if (!isLoading) {
+      if (interval) {
+        clearInterval(interval)
+      }
+      // Reset timer when evaluation completes
+      if (startTime) {
+        setStartTime(null)
+        setElapsedTime(0)
+      }
+    }
+
+    return () => {
+      if (interval) {
+        clearInterval(interval)
+      }
+    }
+  }, [isLoading, startTime])
+
   const handleRunEvaluation = async () => {
     if (validation.isValid && !isLoading) {
+      setStartTime(Date.now())
+      setElapsedTime(0)
       await runEvaluation()
       // The store will automatically update the step when evaluation completes
     }
@@ -40,6 +71,12 @@ export default function TestStep({ onBack }: TestStepProps) {
   const handleBack = () => {
     setCurrentStep(1) // Back to instructions step
     onBack?.()
+  }
+
+  const formatElapsedTime = (ms: number) => {
+    const seconds = Math.floor(ms / 1000)
+    const milliseconds = Math.floor((ms % 1000) / 100)
+    return `${seconds}.${milliseconds}s`
   }
 
 
@@ -70,14 +107,26 @@ export default function TestStep({ onBack }: TestStepProps) {
         </div>
       )}
 
-      {/* Instructions Preview */}
-      <div className="space-y-2">
-        <label className="block text-sm font-medium">System Instructions Preview</label>
-        <div className="bg-muted/30 p-3 rounded-lg border">
-          <p className="text-sm font-mono text-muted-foreground leading-relaxed">
-            {currentTest.instructions || 'No instructions provided'}
-          </p>
-        </div>
+      {/* Instructions Preview (collapsible) */}
+      <div className="bg-muted/50 rounded-lg p-4">
+        <button
+          onClick={() => setShowInstructions(!showInstructions)}
+          className="flex items-center justify-between w-full text-left"
+        >
+          <label className="text-sm font-medium cursor-pointer">System Instructions Preview</label>
+          {showInstructions ? (
+            <CaretDown size={16} className="text-muted-foreground" />
+          ) : (
+            <CaretRight size={16} className="text-muted-foreground" />
+          )}
+        </button>
+        {showInstructions && (
+          <div className="mt-3 bg-background rounded border p-3 max-h-32 overflow-y-auto">
+            <p className="text-sm font-mono text-foreground leading-relaxed whitespace-pre-wrap">
+              {currentTest.instructions || 'No instructions provided'}
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Test Prompt Input */}
@@ -158,7 +207,7 @@ export default function TestStep({ onBack }: TestStepProps) {
           {isLoading ? (
             <>
               <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-              Running Evaluation...
+              Running Evaluation... {elapsedTime > 0 && `(${formatElapsedTime(elapsedTime)})`}
             </>
           ) : (
             <>
@@ -169,6 +218,20 @@ export default function TestStep({ onBack }: TestStepProps) {
         </button>
       </div>
 
+      {/* Elapsed Time Display */}
+      {isLoading && elapsedTime > 0 && (
+        <div className="text-center mt-4">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-muted/50 rounded-lg border">
+            <Clock size={16} className="text-muted-foreground" />
+            <span className="text-sm font-medium text-foreground">
+              Elapsed: {formatElapsedTime(elapsedTime)}
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            Evaluation typically takes 10-30 seconds depending on model and prompt complexity
+          </p>
+        </div>
+      )}
 
     </div>
   )

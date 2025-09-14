@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { MagnifyingGlass, Spinner, X } from 'phosphor-react'
 import { useAppStore } from '@/lib/store'
 import { Model } from '@/lib/types'
@@ -17,6 +17,7 @@ export default function ModelSearch({ onClose, isEvaluationModel = false }: Mode
   const { availableModels, isLoading, fetchModels, searchModels, selectModel, selectEvaluationModel } = useAppStore()
   const [searchQuery, setSearchQuery] = useState('')
   const [isSearching, setIsSearching] = useState(false)
+  const searchInputRef = useRef<HTMLInputElement>(null)
   // Removed focusedIndex to prevent keyboard navigation interference
   
   // Generate unique IDs for accessibility
@@ -33,6 +34,15 @@ export default function ModelSearch({ onClose, isEvaluationModel = false }: Mode
       fetchModels()
     }
   }, [availableModels.length, fetchModels])
+
+  // Auto-focus search input when component mounts
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      searchInputRef.current?.focus()
+    }, 150) // Small delay to ensure smooth scrolling completes first
+    
+    return () => clearTimeout(timer)
+  }, [])
 
   // Filter models based on search query
   const filteredModels = useMemo(() => {
@@ -71,7 +81,16 @@ export default function ModelSearch({ onClose, isEvaluationModel = false }: Mode
   // Removed keyboard navigation to prevent interference with typing
 
   const formatPrice = (price: number) => {
-    return `$${(price || 0).toFixed(4)}/1K tokens`
+    const safePrice = price || 0
+    if (safePrice === 0) {
+      return '$0.0000/1K tokens'
+    }
+    // For very small prices, show more decimal places
+    if (safePrice < 0.0001) {
+      return `$${safePrice.toExponential(2)}/1K tokens`
+    }
+    // For normal prices, show 4 decimal places
+    return `$${safePrice.toFixed(4)}/1K tokens`
   }
 
   const getProviderColor = (provider: string) => {
@@ -111,6 +130,7 @@ export default function ModelSearch({ onClose, isEvaluationModel = false }: Mode
             aria-hidden="true"
           />
           <input
+            ref={searchInputRef}
             id={searchId}
             type="text"
             value={searchQuery}
