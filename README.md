@@ -65,15 +65,107 @@ npm run build
 npm start
 ```
 
-## Usage
+## How to Use
 
-1. **Enter API Key**: Input your OpenRouter API key (encrypted and stored locally)
-2. **Select Primary Model**: Choose the AI model to test your instructions with
-3. **Select Evaluation Model**: Choose the AI model that will score response quality
-4. **Write Instructions**: Create detailed system instructions for the AI
-5. **Test Prompt**: Provide a test scenario to evaluate effectiveness
-6. **Run Evaluation**: Execute the dual-model evaluation process
-7. **Review Results**: Analyze metrics and export data as needed
+### Step 1: Get Your OpenRouter API Key
+
+1. Visit [OpenRouter.ai](https://openrouter.ai/keys)
+2. Sign up or log in to your account
+3. Generate a new API key
+4. Copy the API key (you'll need it in the next step)
+
+### Step 2: Configure API Access
+
+1. Open the application at [http://localhost:3000](http://localhost:3000)
+2. Click "Start Testing" to begin the setup process
+3. In the **OpenRouter API Key** section:
+   - Paste your API key into the input field
+   - The key is automatically encrypted and stored only in your browser session
+   - Wait for the green checkmark indicating successful validation
+
+### Step 3: Select Your Primary Model
+
+1. Once your API key is validated, the **Select Model** section appears
+2. Click "Click to search and select a model"
+3. In the model search dialog:
+   - Use the search bar to find models by name, provider, or description
+   - Browse available models from providers like OpenAI, Anthropic, Google, etc.
+   - View pricing information and context length for each model
+   - Click on your desired model to select it
+4. The selected model will be displayed with its specifications
+
+### Step 4: Select Your Evaluation Model
+
+1. After selecting your primary model, the **Select Evaluation Model** section appears
+2. Click "Click to search and select an evaluation model"
+3. Choose a model that will score the primary model's responses:
+   - **Recommended**: Use a different, capable model (like GPT-4, Claude, etc.) for objective evaluation
+   - **Consider**: Models with strong reasoning capabilities work best for evaluation
+   - **Pricing**: Factor in evaluation model costs as it will analyze each response
+4. Click on your chosen evaluation model to select it
+
+### Step 5: Write System Instructions
+
+1. Click "Next: Instructions" to proceed to the instructions step
+2. In the **System Instructions** text area:
+   - Write detailed instructions defining how the AI should behave
+   - Be specific about tone, style, and response format
+   - Include any constraints or special requirements
+   - Aim for 50+ characters for meaningful instructions
+3. Use the provided tips for writing effective instructions:
+   - Be specific about desired tone and style
+   - Include examples when possible
+   - Define the role and context clearly
+   - Use clear, unambiguous language
+
+### Step 6: Create a Test Prompt
+
+1. Click "Continue to Test" to move to the testing step
+2. In the **Test Prompt** section:
+   - Write a specific scenario or question to test your instructions
+   - Make it challenging enough to evaluate instruction effectiveness
+   - Ensure it allows the AI to demonstrate the behaviors defined in your instructions
+3. Review the **System Instructions Preview** to confirm your setup
+4. Check the **Selected Model** information to verify your choices
+
+### Step 7: Run the Evaluation
+
+1. Click "Run Evaluation" to start the dual-model process
+2. The system will:
+   - Send your test prompt to the primary model with your system instructions
+   - Send the primary model's response to the evaluation model for scoring
+   - Calculate metrics based on coherence, task completion, instruction adherence, and efficiency
+3. Wait for the evaluation to complete (typically 30-60 seconds)
+
+### Step 8: Review Results
+
+1. View your **Overall Success Score** (0-100%)
+2. Examine individual metrics:
+   - **Coherence**: How logical and well-structured is the response
+   - **Task Completion**: How completely the response addresses the prompt
+   - **Instruction Adherence**: How well the response follows your system instructions
+   - **Efficiency**: How concise and relevant the response is
+3. Review **Token Usage** and **Cost Breakdown** for both models
+4. Read the **Evaluation Explanation** for detailed feedback
+
+### Step 9: Export and Compare
+
+1. **Export Results**: Download your results as JSON, CSV, or PDF
+2. **Session History**: View all tests from your current session
+3. **Compare Tests**: Run multiple evaluations with different:
+   - System instructions
+   - Models
+   - Test prompts
+4. **Clear History**: Remove all session data when finished
+
+## Tips for Best Results
+
+- **Instruction Quality**: Spend time crafting clear, specific system instructions
+- **Model Selection**: Choose models appropriate for your use case and budget
+- **Test Scenarios**: Use realistic prompts that reflect actual usage
+- **Evaluation Models**: Select capable models for objective scoring
+- **Iteration**: Run multiple tests to refine your instructions
+- **Cost Management**: Monitor token usage and costs for both models
 
 ## Technology Stack
 
