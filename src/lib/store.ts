@@ -29,7 +29,7 @@ import { performanceMonitor } from './performanceMonitor'
 const defaultSettings: UserSettings = {
   temperature: 0.7,
   maxTokens: 1000,
-  evaluationModel: 'gpt-4',
+  evaluationModel: null,
   autoSave: true
 }
 
@@ -260,6 +260,16 @@ export const useAppStore = create<AppState & AppActions>()(
           })
         },
 
+        selectEvaluationModel: (model: Model) => {
+          const { settings } = get()
+          set({
+            settings: {
+              ...settings,
+              evaluationModel: model
+            }
+          })
+        },
+
         setInstructions: (instructions: string) => {
           const { currentTest } = get()
           set({
@@ -284,8 +294,8 @@ export const useAppStore = create<AppState & AppActions>()(
           const { currentTest, apiKey, settings } = get()
           const operationId = 'run_evaluation'
           
-          if (!apiKey || !currentTest.model || !currentTest.instructions || !currentTest.prompt) {
-            set({ error: 'Missing required data for evaluation' })
+          if (!apiKey || !currentTest.model || !settings.evaluationModel || !currentTest.instructions || !currentTest.prompt) {
+            set({ error: 'Missing required data for evaluation. Please select both primary and evaluation models.' })
             return
           }
 
@@ -321,6 +331,7 @@ export const useAppStore = create<AppState & AppActions>()(
             const testParams: TestParams = {
               apiKey,
               model: currentTest.model,
+              evaluationModel: settings.evaluationModel,
               systemInstructions: currentTest.instructions,
               userPrompt: currentTest.prompt,
               temperature: settings.temperature,
@@ -594,6 +605,7 @@ export const useTestActions = () => useAppStore((state) => ({
   startTest: state.startTest,
   setCurrentStep: state.setCurrentStep,
   selectModel: state.selectModel,
+  selectEvaluationModel: state.selectEvaluationModel,
   setInstructions: state.setInstructions,
   setPrompt: state.setPrompt,
   runEvaluation: state.runEvaluation,

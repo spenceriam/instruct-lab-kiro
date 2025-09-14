@@ -13,6 +13,7 @@ import {
 export interface TestParams {
   apiKey: string
   model: Model
+  evaluationModel: Model
   systemInstructions: string
   userPrompt: string
   temperature?: number
@@ -24,6 +25,7 @@ export interface EvaluationParams {
   instructions: string
   prompt: string
   apiKey: string
+  evaluationModel: Model
 }
 
 export interface TestResult {
@@ -48,7 +50,6 @@ export interface CostBreakdown {
  */
 export class EvaluationEngine {
   private static readonly OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1'
-  private static readonly EVALUATION_MODEL = 'openai/gpt-4-turbo-preview'
   private static readonly DEFAULT_TEMPERATURE = 0.7
   private static readonly DEFAULT_MAX_TOKENS = 1000
   private static readonly EVALUATION_MAX_TOKENS = 500
@@ -74,12 +75,13 @@ export class EvaluationEngine {
       // Step 1: Execute primary test with user's selected model
       const primaryResponse = await this.executePrimaryTest(params, operationId)
       
-      // Step 2: Evaluate the response using GPT-4
+      // Step 2: Evaluate the response using user's selected evaluation model
       const evaluationParams: EvaluationParams = {
         response: primaryResponse.choices[0].message.content,
         instructions: params.systemInstructions,
         prompt: params.userPrompt,
-        apiKey: params.apiKey
+        apiKey: params.apiKey,
+        evaluationModel: params.evaluationModel
       }
       
       const evaluationResult = await this.evaluateResponse(evaluationParams, operationId)
@@ -94,7 +96,7 @@ export class EvaluationEngine {
         totalTokens: primaryResponse.usage.total_tokens
       }
       
-      const cost = this.calculateCost(primaryResponse, evaluationResult.evaluationTokens, params.model)
+      const cost = this.calculateCost(primaryResponse, evaluationResult.evaluationTokens, params.model, params.evaluationModel)
       
       // Clear recovery state on success
       ErrorRecoveryManager.clearRecoveryState(operationId)
@@ -182,7 +184,7 @@ export class EvaluationEngine {
     )
 
     const request: OpenRouterRequest = {
-      model: this.EVALUATION_MODEL,
+      model: params.evaluationModel.id,
       messages: [
         {
           role: 'system',
@@ -217,7 +219,7 @@ export class EvaluationEngine {
       appError.context = {
         ...appError.context,
         phase: 'evaluation',
-        evaluationModel: this.EVALUATION_MODEL,
+        evaluationModel: params.evaluationModel.id,
         operationId
       }
       throw appError
@@ -342,17 +344,17 @@ Ensure the JSON is valid and contains only the requested fields with numeric sco
   private static calculateCost(
     primaryResponse: OpenRouterResponse,
     evaluationTokens: TokenStats,
-    model: Model
+    model: Model,
+    evaluationModel: Model
   ): number {
     // Calculate primary test cost
     const primaryPromptCost = (primaryResponse.usage.prompt_tokens / 1000000) * model.pricing.prompt
     const primaryCompletionCost = (primaryResponse.usage.completion_tokens / 1000000) * model.pricing.completion
     const primaryTestCost = primaryPromptCost + primaryCompletionCost
 
-    // Calculate evaluation cost (using GPT-4 pricing)
-    // GPT-4 Turbo pricing: $0.01/1K prompt tokens, $0.03/1K completion tokens
-    const evaluationPromptCost = (evaluationTokens.promptTokens / 1000) * 0.01
-    const evaluationCompletionCost = (evaluationTokens.completionTokens / 1000) * 0.03
+    // Calculate evaluation cost using the selected evaluation model's pricing
+    const evaluationPromptCost = (evaluationTokens.promptTokens / 1000000) * evaluationModel.pricing.prompt
+    const evaluationCompletionCost = (evaluationTokens.completionTokens / 1000000) * evaluationModel.pricing.completion
     const evaluationCost = evaluationPromptCost + evaluationCompletionCost
 
     return primaryTestCost + evaluationCost

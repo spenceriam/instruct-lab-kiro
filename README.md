@@ -6,16 +6,17 @@ An AI system instruction testing and optimization platform that enables develope
 
 ## Overview
 
-Instruct-Lab provides quantitative metrics on instruction effectiveness without vendor lock-in. The platform uses a dual-model evaluation system where your selected model executes the instructions, and GPT-4 evaluates the effectiveness of the response.
+Instruct-Lab provides quantitative metrics on instruction effectiveness without vendor lock-in. The platform uses a dual-model evaluation system where your selected primary model executes the instructions, and your chosen evaluation model scores the effectiveness of the response.
 
 ## How It Works
 
 1. **API Key Setup**: Enter your OpenRouter API key for model access
-2. **Model Selection**: Choose from 100+ AI models across different providers
-3. **System Instructions**: Define how the AI should behave and respond
-4. **Test Prompt**: Provide a test scenario to evaluate instruction effectiveness
-5. **Dual Evaluation**: Your model generates a response, GPT-4 scores the effectiveness
-6. **Results Analysis**: View quantitative metrics and export results
+2. **Primary Model Selection**: Choose the AI model to test your instructions with
+3. **Evaluation Model Selection**: Choose the AI model that will score response effectiveness
+4. **System Instructions**: Define how the AI should behave and respond
+5. **Test Prompt**: Provide a test scenario to evaluate instruction effectiveness
+6. **Dual Evaluation**: Primary model generates response, evaluation model scores effectiveness
+7. **Results Analysis**: View quantitative metrics and export results
 
 ## Key Features
 
@@ -67,11 +68,12 @@ npm start
 ## Usage
 
 1. **Enter API Key**: Input your OpenRouter API key (encrypted and stored locally)
-2. **Select Model**: Search and choose from available AI models
-3. **Write Instructions**: Create detailed system instructions for the AI
-4. **Test Prompt**: Provide a test scenario to evaluate effectiveness
-5. **Run Evaluation**: Execute the dual-model evaluation process
-6. **Review Results**: Analyze metrics and export data as needed
+2. **Select Primary Model**: Choose the AI model to test your instructions with
+3. **Select Evaluation Model**: Choose the AI model that will score response quality
+4. **Write Instructions**: Create detailed system instructions for the AI
+5. **Test Prompt**: Provide a test scenario to evaluate effectiveness
+6. **Run Evaluation**: Execute the dual-model evaluation process
+7. **Review Results**: Analyze metrics and export data as needed
 
 ## Technology Stack
 
@@ -114,7 +116,7 @@ The application follows a privacy-first architecture with no server-side data pe
 - **State**: Zustand store with encrypted session storage
 - **API**: Direct integration with OpenRouter API
 - **Security**: Web Crypto API for key encryption
-- **Evaluation**: Dual-model system (primary + GPT-4 evaluator)
+- **Evaluation**: Dual-model system (user-selected primary + evaluation models)
 
 ## Contributing
 

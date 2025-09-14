@@ -68,7 +68,7 @@ export interface SessionData {
 export interface UserSettings {
   temperature: number
   maxTokens: number
-  evaluationModel: string
+  evaluationModel: Model | null
   autoSave: boolean
 }
 

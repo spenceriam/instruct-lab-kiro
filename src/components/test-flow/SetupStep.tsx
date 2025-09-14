@@ -8,10 +8,11 @@ import { useAppStore } from '@/lib/store'
 import { ArrowRight } from 'phosphor-react'
 
 export default function SetupStep() {
-  const { currentTest, isApiKeyValid, setCurrentStep } = useAppStore()
+  const { currentTest, settings, isApiKeyValid, setCurrentStep } = useAppStore()
   const [showModelSearch, setShowModelSearch] = useState(false)
+  const [showEvaluationModelSearch, setShowEvaluationModelSearch] = useState(false)
 
-  const canProceed = isApiKeyValid && currentTest.model
+  const canProceed = isApiKeyValid && currentTest.model && settings.evaluationModel
 
   const handleNext = () => {
     if (canProceed) {
@@ -59,6 +60,41 @@ export default function SetupStep() {
           {showModelSearch && (
             <div className="mt-3 sm:mt-4">
               <ModelSearch onClose={() => setShowModelSearch(false)} />
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Evaluation Model Selection Section */}
+      {isApiKeyValid && currentTest.model && (
+        <div>
+          <h3 className="text-base sm:text-lg font-semibold text-foreground mb-2">
+            Select Evaluation Model
+          </h3>
+          <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">
+            Choose the AI model that will evaluate and score the primary model's responses.
+          </p>
+          
+          {settings.evaluationModel ? (
+            <SelectedModelDisplay 
+              model={settings.evaluationModel}
+              onChangeModel={() => setShowEvaluationModelSearch(true)}
+            />
+          ) : (
+            <button
+              onClick={() => setShowEvaluationModelSearch(true)}
+              className="w-full p-3 sm:p-4 border-2 border-dashed border-border rounded-lg text-muted-foreground hover:border-primary hover:text-foreground transition-colors text-sm sm:text-base min-h-[44px]"
+            >
+              Click to search and select an evaluation model
+            </button>
+          )}
+
+          {showEvaluationModelSearch && (
+            <div className="mt-3 sm:mt-4">
+              <ModelSearch 
+                onClose={() => setShowEvaluationModelSearch(false)}
+                isEvaluationModel={true}
+              />
             </div>
           )}
         </div>

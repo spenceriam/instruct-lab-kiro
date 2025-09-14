@@ -10,10 +10,11 @@ import { ModelSearchSkeleton } from '@/components/ui/LoadingStates'
 
 interface ModelSearchProps {
   onClose: () => void
+  isEvaluationModel?: boolean
 }
 
-export default function ModelSearch({ onClose }: ModelSearchProps) {
-  const { availableModels, isLoading, fetchModels, searchModels, selectModel } = useAppStore()
+export default function ModelSearch({ onClose, isEvaluationModel = false }: ModelSearchProps) {
+  const { availableModels, isLoading, fetchModels, searchModels, selectModel, selectEvaluationModel } = useAppStore()
   const [searchQuery, setSearchQuery] = useState('')
   const [isSearching, setIsSearching] = useState(false)
   const [focusedIndex, setFocusedIndex] = useState(-1)
@@ -60,8 +61,13 @@ export default function ModelSearch({ onClose }: ModelSearchProps) {
   }, [filteredModels])
 
   const handleModelSelect = (model: Model) => {
-    selectModel(model)
-    announceToScreenReader(`Selected model: ${model.name} by ${model.provider}`)
+    if (isEvaluationModel) {
+      selectEvaluationModel(model)
+      announceToScreenReader(`Selected evaluation model: ${model.name} by ${model.provider}`)
+    } else {
+      selectModel(model)
+      announceToScreenReader(`Selected model: ${model.name} by ${model.provider}`)
+    }
     onClose()
   }
 
