@@ -2,7 +2,7 @@
   "name": "instruct-lab-kiro",
   "version": "0.1.0",
   "private": true,
-  "description": "AI system instruction testing & optimization platform for Kiro hackathon",
+  "description": "AI system instruction testing & optimization platform",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

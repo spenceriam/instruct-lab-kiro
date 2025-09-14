@@ -97,7 +97,7 @@ export default function PrivacyModal() {
 
         <div className="border-t border-border pt-4">
           <p className="text-xs text-muted-foreground">
-            Questions about this privacy policy? This is a hackathon project built for demonstration purposes. For any concerns, please contact the development team.
+            Questions about this privacy policy? For any concerns, please reach out to [@spencer_i_am](https://x.com/spencer_i_am) on X.
           </p>
         </div>
 

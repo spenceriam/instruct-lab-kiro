@@ -30,7 +30,7 @@ export default function TermsModal() {
             Service Description
           </h3>
           <p className="text-sm text-muted-foreground">
-            Instruct-Lab is a web application that helps you test and evaluate AI system instructions across multiple models using OpenRouter&apos;s API. This is a demonstration project built for the Kiro hackathon.
+            Instruct-Lab is a web application that helps you test and evaluate AI system instructions across multiple models using OpenRouter&apos;s API. This is a demonstration project built by Spencer.
           </p>
         </div>
 
@@ -53,7 +53,7 @@ export default function TermsModal() {
           </h3>
           <div className="bg-warning/10 border border-warning/20 rounded-lg p-4">
             <div className="space-y-2 text-sm text-foreground">
-              <p><strong>Hackathon Project:</strong> This is a demonstration project with no guarantees of availability, accuracy, or continued operation.</p>
+              <p><strong>Demonstration Project:</strong> This is a demonstration project with no guarantees of availability, accuracy, or continued operation.</p>
               <p><strong>No SLA:</strong> We provide no service level agreements or uptime guarantees.</p>
               <p><strong>Beta Software:</strong> Features may be incomplete or change without notice.</p>
             </div>
@@ -100,13 +100,13 @@ export default function TermsModal() {
             Termination
           </h3>
           <p className="text-sm text-muted-foreground">
-            You may stop using the service at any time. We may discontinue the service at any time without notice, as this is a hackathon demonstration project.
+            You may stop using the service at any time. We may discontinue the service at any time without notice, as this is a demonstration project.
           </p>
         </div>
 
         <div className="border-t border-border pt-4">
           <p className="text-xs text-muted-foreground">
-            These terms are designed for a hackathon demonstration project. For questions or concerns, please contact the development team.
+            These terms are designed for a demonstration project. For questions or concerns, please reach out to [@spencer_i_am](https://x.com/spencer_i_am) on X.
           </p>
         </div>
 

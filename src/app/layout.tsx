@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   title: 'Instruct-Lab | AI System Instruction Testing Platform',
   description: 'Test, evaluate, and optimize your AI system instructions across multiple models using OpenRouter\'s unified API with quantitative metrics.',
   keywords: ['AI', 'OpenRouter', 'System Instructions', 'Testing', 'Optimization', 'Machine Learning'],
-  authors: [{ name: 'Kiro Hackathon Team' }],
+  authors: [{ name: 'Spencer', url: 'https://x.com/spencer_i_am' }],
 }
 
 export const viewport: Viewport = {

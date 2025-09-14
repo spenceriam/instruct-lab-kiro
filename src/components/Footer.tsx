@@ -33,7 +33,7 @@ export default function Footer({ onOpenPrivacy, onOpenTerms }: FooterProps) {
               Terms of Use
             </button>
             <p className="text-xs">
-              Built for Kiro Hackathon
+              Built by <a href="https://x.com/spencer_i_am" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">@spencer_i_am</a>
             </p>
           </div>
         </div>
