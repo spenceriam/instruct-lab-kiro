@@ -146,54 +146,49 @@ export default function TestFlowModal({ isOpen, onClose }: TestFlowModalProps) {
       size="lg"
       className="max-w-4xl"
     >
-      {/* Step indicator with tab navigation */}
-      <nav className="mb-4 sm:mb-6" aria-label="Test flow progress">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-0" role="tablist">
+      {/* Step Progress Indicator */}
+      <nav className="mb-6" aria-label="Test flow progress">
+        <div className="flex items-center justify-between" role="tablist">
           {stepConfigs.map((step, index) => {
             const isAccessible = step.isAccessible(currentTest, isApiKeyValid)
             const isComplete = step.isComplete(currentTest, isApiKeyValid)
             const isCurrent = index === currentStep
             
             return (
-              <div key={step.title} className="flex items-center flex-1">
-                <button
-                  id={`step-tab-${index}`}
-                  onClick={() => handleStepClick(index)}
-                  disabled={!isAccessible}
-                  role="tab"
-                  aria-selected={isCurrent}
-                  aria-controls={`step-panel-${index}`}
-                  className={`flex items-center gap-3 sm:gap-2 p-2 sm:p-3 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 w-full sm:w-auto ${
-                    isCurrent
-                      ? 'bg-primary text-primary-foreground'
-                      : isComplete
-                      ? 'bg-success text-white hover:bg-success/90'
-                      : isAccessible
-                      ? 'bg-muted text-muted-foreground hover:bg-muted/80'
-                      : 'bg-muted/50 text-muted-foreground/50 cursor-not-allowed'
-                  }`}
-                  aria-label={`${isAccessible ? 'Go to' : 'Cannot access'} step ${index + 1}: ${step.title}`}
-                  aria-disabled={!isAccessible}
-                >
-                  <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-medium flex-shrink-0`}>
-                    {index + 1}
-                  </div>
-                  <div className="flex-1 min-w-0 text-left">
-                    <div className="text-sm font-medium truncate">
+              <React.Fragment key={step.title}>
+                <div className="flex flex-col items-center">
+                  <button
+                    id={`step-tab-${index}`}
+                    onClick={() => handleStepClick(index)}
+                    disabled={!isAccessible}
+                    role="tab"
+                    aria-selected={isCurrent}
+                    aria-controls={`step-panel-${index}`}
+                    className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium transition-all focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
+                      isCurrent
+                        ? 'bg-primary text-primary-foreground shadow-lg scale-110'
+                        : isComplete
+                        ? 'bg-success text-white hover:bg-success/90'
+                        : isAccessible
+                        ? 'bg-muted text-muted-foreground hover:bg-muted/80 border-2 border-border'
+                        : 'bg-muted/50 text-muted-foreground/50 cursor-not-allowed border-2 border-muted'
+                    }`}
+                    aria-label={`${isAccessible ? 'Go to' : 'Cannot access'} step ${index + 1}: ${step.title}`}
+                  >
+                    {isComplete && !isCurrent ? '✓' : index + 1}
+                  </button>
+                  <div className="mt-2 text-center">
+                    <div className={`text-xs font-medium ${
+                      isCurrent ? 'text-primary' : isComplete ? 'text-success' : 'text-muted-foreground'
+                    }`}>
                       {step.title}
-                      {isCurrent && <span className="sr-only"> (current step)</span>}
-                      {isComplete && !isCurrent && <span className="sr-only"> (completed)</span>}
-                      {!isAccessible && <span className="sr-only"> (not accessible)</span>}
-                    </div>
-                    <div className="text-xs opacity-75 truncate sm:hidden">
-                      {step.description}
                     </div>
                   </div>
-                </button>
+                </div>
                 
-                {/* Progress connector line - desktop only */}
+                {/* Progress connector line */}
                 {index < stepConfigs.length - 1 && (
-                  <div className="hidden sm:flex flex-1 mx-4">
+                  <div className="flex-1 mx-4 mt-[-20px]">
                     <div
                       className={`h-0.5 w-full transition-colors ${
                         isComplete ? 'bg-success' : 'bg-muted'
@@ -202,7 +197,7 @@ export default function TestFlowModal({ isOpen, onClose }: TestFlowModalProps) {
                     />
                   </div>
                 )}
-              </div>
+              </React.Fragment>
             )
           })}
         </div>
